@@ -3,6 +3,12 @@
 
 # include "Acommand.hpp"
 
+class Cap : public Acommand {
+public:
+    Cap();
+    void execute(server& server, Client& client, const IRCMessage& msg);
+};
+
 class Pass : public Acommand {
 public:
     Pass();
@@ -20,5 +26,7 @@ public:
     User();
     void execute(server& server, Client& client, const IRCMessage& msg);
 };
+
+
 
 #endif

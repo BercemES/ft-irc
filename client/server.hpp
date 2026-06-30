@@ -12,8 +12,8 @@
 class server
 {
 private:
-	int							_serverFd;
-	std::vector<Client>			_clients;
+	int								_serverFd;
+	std::map<int, Client>			_clients;
 	//_channels;
 	std::map<std::string, Acommand*> _commands;
 
