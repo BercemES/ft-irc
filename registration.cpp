@@ -6,7 +6,7 @@ void handleCap(server& server, Client& client, const IRCMessage& msg)
 	
 }
 
-void handlePass(server& server, Client& client, const IRCMessage& msg)
+void handlePass(const server& server, Client& client, const IRCMessage& msg)
 {
 	if (msg.params.empty())
 	{
@@ -19,9 +19,11 @@ void handlePass(server& server, Client& client, const IRCMessage& msg)
 		return ;
 	}
 	if (msg.params[0] != server.getPassword())
+	{
 		client.sendMessage(Replies::ERR_PASSWDMISMATCH(client.getName(TYPE_NICK)));
-	else
-		client.setRegFlag(FLAG_PASS, true);
+		//sunucuyu kapatacaksak o fonksiyon gelecek.
+	}
+	client.setRegFlag(FLAG_PASS, true);
 }
 
 void handleNick(server& server, Client& client, const IRCMessage& msg)

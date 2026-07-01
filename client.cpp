@@ -5,7 +5,7 @@ Client::Client(int fd): _fd(fd), _passFlag(false), _nickFlag(false), _userFlag(f
 Client::~Client(){}
 
 
-string	nextParam(const string& line, size_t& pos)
+string	Client::nextParam(const string& line, size_t& pos)
 {
 	size_t	space = 0;
 	string	param;
@@ -74,8 +74,15 @@ void	Client::appendToBuffer(const string& message)
 		line = _buffer.substr(0, pos);
 		_buffer.erase(0, pos + 2);
 		msg = parseIRC(line);
+		if (!msg.command.empty())
+			this->_commandsOrder.push_back(msg);
 		pos = _buffer.find("\r\n");
 	}
+}
+
+bool Client::hasCommands() const
+{
+	return (!this->_commandsOrder.empty());
 }
 
 string	Client::ircToLower(string str)
@@ -94,6 +101,13 @@ string	Client::ircToLower(string str)
 			str[i] = '~';
 	}
 	return (str);
+}
+
+IRCMessage Client::getNextCommand()
+{
+    IRCMessage msg = this->_commandsOrder.front();
+    this->_commandsOrder.erase(this->_commandsOrder.begin());
+    return (msg);
 }
 
 bool	Client::isFullyRegistered() const

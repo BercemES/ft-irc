@@ -24,7 +24,7 @@ public:
 	~server();
 
 	void	handleCommand(Client& client, IRCMessage& msg);
-	string	getPassword();
+	const string	getPassword() const;
 };
 
 

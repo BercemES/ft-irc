@@ -32,7 +32,7 @@ void server::handleCommand(Client& client, IRCMessage& msg)
 	it->second->execute(*this, client, msg);
 }
 
-string	server::getPassword()
+const string	server::getPassword() const 
 {
 	return (this->getPassword());
 }

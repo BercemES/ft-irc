@@ -39,6 +39,8 @@ private:
 	bool	_passFlag;
 	bool	_nickFlag;
 	bool	_userFlag;
+	
+	std::vector<IRCMessage>     _commandsOrder;
 
 	IRCMessage		parseIRC(const std::string& line);
 	static string	nextParam(const std::string& line, size_t& pos);
@@ -47,16 +49,19 @@ public:
 	Client(int fd);
 	~Client();
 
-	void	appendToBuffer(const std::string& message);
-	bool	isFullyRegistered() const;
+	void		appendToBuffer(const std::string& message);
+	bool		hasCommands() const;
+	IRCMessage	getNextCommand();
+	bool		isFullyRegistered() const;
 	
-	void	sendMessage(const std::string& message);
+	void		sendMessage(const std::string& message);
 
 
-	string	getName(NameType type) const;
-	void	setName(NameType type, const std::string& value);
-	int		getFd() const;
-	void	setRegFlag(RegFlag flag, bool value);
+	string		getName(NameType type) const;
+	void		setName(NameType type, const std::string& value);
+	int			getFd() const;
+	void		setRegFlag(RegFlag flag, bool value);
+
 
 
 };
