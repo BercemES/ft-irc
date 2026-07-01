@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <sys/socket.h>
 
 using std::string;
 using std::cout;
@@ -13,6 +14,18 @@ struct IRCMessage {
 	string prefix;
 	string command;
 	std::vector<std::string> params;
+};
+
+enum NameType {
+    TYPE_NICK,
+    TYPE_USER,
+    TYPE_REAL
+};
+
+enum RegFlag {
+	FLAG_PASS,
+	FLAG_NICK,
+	FLAG_USER 
 };
 
 class Client
@@ -36,6 +49,16 @@ public:
 
 	void	appendToBuffer(const std::string& message);
 	bool	isFullyRegistered() const;
+	
+	void	sendMessage(const std::string& message);
+
+
+	string	getName(NameType type) const;
+	void	setName(NameType type, const std::string& value);
+	int		getFd() const;
+	void	setRegFlag(RegFlag flag, bool value);
+
+
 };
 
 

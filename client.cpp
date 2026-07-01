@@ -98,5 +98,66 @@ string	Client::ircToLower(string str)
 
 bool	Client::isFullyRegistered() const
 {
-	
+	return (this->_nickFlag && this->_passFlag && this->_userFlag);
+}
+
+string	Client::getName(NameType type) const
+{
+	if (type == TYPE_NICK)
+	{
+		if (this->_nickname.empty())
+			return("*"); 
+// Error dönerken hatada nickname yoksa * gösterilmesi gerekiyor diye direkt gete ekledim.
+// Kullanıcının nicki var mı diye kontrol etmek isterseniz empty() değil; getName(TYPE_NICK) != "*" a şeklinde kontrol etmemizz lazım  
+		return (this->_nickname);
+	}
+	if (type == TYPE_USER)
+		return (this->_username);
+	if (type == TYPE_REAL)
+		return (this->_realname);
+	return ("");
+}
+
+
+void	Client::setName(NameType type, const std::string& value)
+{
+	if (type == TYPE_NICK)
+	{
+			this->_nickname = value;
+			this->_nickFlag = true;
+	}
+	else if (type == TYPE_USER)
+	{
+		this->_username = value;
+		this->_userFlag = true;
+	}
+	else if (type == TYPE_REAL)
+		this->_realname = value;
+}
+
+int	Client::getFd() const
+{
+	return (this->_fd);
+}
+
+
+void	Client::sendMessage(const string& message)
+{
+	int send_flag;
+
+	send_flag = send(this->getFd(), message.c_str(), message.length(), MSG_NOSIGNAL);
+	if (send_flag == -1)
+	{
+		//kullanıcı düştü. Bağlantıyı kapat fonksiyonu gelecek.!!!
+	}
+}
+
+void	Client::setRegFlag(RegFlag flag, bool value)
+{
+	if (flag == FLAG_PASS) 
+		this->_passFlag = value;
+	else if (flag == FLAG_NICK) 
+		this->_nickFlag = value;
+	else if (flag == FLAG_USER)
+		this->_userFlag = value;
 }

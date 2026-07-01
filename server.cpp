@@ -1,12 +1,13 @@
 #include "server.hpp"
 
-void server::initCommands()
-{
-    _commands["PASS"] = new Pass();
-    _commands["NICK"] = new Nick();
-    _commands["USER"] = new User();
-	//...
-}
+//void server::initCommands()
+//{
+//    _commands["PASS"] = &handleCap();
+//    _commands["PASS"] = &handlePass();
+//    _commands["NICK"] = &handleNick();
+//    _commands["USER"] = &handleUser();
+//	//...
+//}
 
 void server::handleCommand(Client& client, IRCMessage& msg)
 {
@@ -29,4 +30,9 @@ void server::handleCommand(Client& client, IRCMessage& msg)
 		return ;
 	}
 	it->second->execute(*this, client, msg);
+}
+
+string	server::getPassword()
+{
+	return (this->getPassword());
 }
