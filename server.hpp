@@ -5,6 +5,7 @@
 #include <cctype>
 #include <vector>
 #include <map>
+#include <sstream>
 
 #include "client.hpp"
 #include "replies.hpp"
@@ -16,9 +17,11 @@ private:
 	std::map<int, Client>			_clients;
 	//_channels;
 
-	string	_password;
+	const string	_password;
+	std::map<std::string, std::string> _RPL_ISUPPORT;
 
-	void initCommands();
+	void						initCommands();
+	void						initIsupport();
 
 public:
 	server(/* args */);
@@ -27,6 +30,7 @@ public:
 	void						handleCommand(Client& client, IRCMessage& msg);
 	const string				getPassword() const;
 	const std::map<int, Client>	getClients() const;
+	const string				getIsupport(const std::string& key) const;
 };
 
 

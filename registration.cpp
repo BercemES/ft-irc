@@ -61,6 +61,8 @@ static bool	nicknameInUse(const server& server, const std::string& nick)
 
 void handleNick(server& server, Client& client, const IRCMessage& msg)
 {
+	if (!client.getRegFlag(FLAG_PASS))
+		return ;
 	if (msg.params[0].empty())
 	{
 		client.sendMessage(Replies::ERR_NONICKNAMEGIVEN(client.getName(TYPE_NICK)));
@@ -71,27 +73,61 @@ void handleNick(server& server, Client& client, const IRCMessage& msg)
 		client.sendMessage(Replies::ERR_ERRONEUSNICKNAME(client.getName(TYPE_NICK), msg.params[0]));
 		return ;
 	}
-	if (client.getName(TYPE_NICK) != "*")
+	if (nicknameInUse(server, msg.params[0]))
 	{
-		if (nicknameInUse(server, msg.params[0]))
-		{
-			client.sendMessage(Replies::ERR_NICKNAMEINUSE(client.getName(TYPE_NICK), msg.params[0]));
-			return ;
-		}
+		client.sendMessage(Replies::ERR_NICKNAMEINUSE(client.getName(TYPE_NICK), msg.params[0]));
+		return ;
 	}
+	string old_nick = client.getName(TYPE_NICK);
 	client.setName(TYPE_NICK, msg.params[0]);
-
+	client.setRegFlag(FLAG_NICK, true);
 	/*
 	NICK command was successful, and to inform other clients about the change of nickname. 
 	In these cases, the <source> of the message will be the old nickname 
 	[ [ "!" user ] "@" host ] of the user who is changing their nickname.
 	*/
+	client.checkReg();
 }
 
 void handleUser(server& server, Client& client, const IRCMessage& msg)
 {
-	
+	if (!client.getRegFlag(FLAG_PASS))
+		return ;
+	if (client.isFullyRegistered())
+	{
+		client.sendMessage(Replies::ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));
+		return ;
+	}
+	if (msg.params.empty() || msg.params[0].length() < 1 || msg.params.size() != 4)
+	{
+		client.sendMessage(Replies::ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+		return ;
+	}
+	string userlen_str = server.getIsupport("USERLEN");
+	std::stringstream ss(userlen_str);
+	int max_userlen = 0;
+	ss >> max_userlen;
+	string username = msg.params[0];
+	if (msg.params[0].length() > max_userlen)
+		username.erase(max_userlen);
+	client.setName(TYPE_USER, username);
+	client.setName(TYPE_REAL, msg.params.back());
+	client.setRegFlag(FLAG_USER, true);
+	//ident protokol durumuna göre tilde koyulacak username başına !!!
 }
 
+void	handleMotd(server& server, Client& client, const IRCMessage& msg)
+{
 
+}
+
+void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
+{
+
+}
+
+void	handleNotice(server& server, Client& client, const IRCMessage& msg)
+{
+
+}
 

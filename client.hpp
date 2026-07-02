@@ -53,6 +53,7 @@ public:
 	bool		hasCommands() const;
 	IRCMessage	getNextCommand();
 	bool		isFullyRegistered() const;
+	bool		checkReg() const;
 	
 	void		sendMessage(const std::string& message);
 
@@ -61,6 +62,7 @@ public:
 	void		setName(NameType type, const std::string& value);
 	int			getFd() const;
 	void		setRegFlag(RegFlag flag, bool value);
+	bool		getRegFlag(RegFlag flag) const;
 
 
 

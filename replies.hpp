@@ -5,6 +5,7 @@
 
 using std::string;
 
+
 class Replies {
 public:
 
@@ -39,8 +40,7 @@ static string	ERR_NICKNAMEINUSE(const string& client, const string& nick)
 	return (":ircserv 433 " + client + " " + nick + " :Nickname is already in use\r\n");
 }
 
-
-//ERR_NICKCOLLISION (436) "<client> <nick> :Nickname collision KILL from <user>@<host>"
+//ERR_NICKCOLLISION (436) "<client> <nick> :Nickname collision KILL from <user>@<host>" -----İki sunucu bağlı olarak işlem yapmadığımız için ele almıyoruz.
 
 };
 

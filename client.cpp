@@ -115,6 +115,21 @@ bool	Client::isFullyRegistered() const
 	return (this->_nickFlag && this->_passFlag && this->_userFlag);
 }
 
+bool	Client::checkReg() const
+{
+	if (!this->isFullyRegistered())
+		return (false);
+	/*
+	RPL_WELCOME (001) "<client> :Welcome to the <networkname> Network, <nick>[!<user>@<host>]"
+	RPL_YOURHOST (002) "<client> :Your host is <servername>, running version <version>"
+	RPL_CREATED (003) "<client> :This server was created <datetime>"
+	RPL_MYINFO (004) "<client> <servername> <version> <available user modes>
+  <available channel modes> [<channel modes with a parameter>]"
+  RPL_ISUPPORT (005) "<client> <1-13 tokens> :are supported by this server"
+	*/
+}
+
+
 string	Client::getName(NameType type) const
 {
 	if (type == TYPE_NICK)
@@ -158,7 +173,7 @@ int	Client::getFd() const
 void	Client::sendMessage(const string& message)
 {
 	int send_flag;
-
+	
 	send_flag = send(this->getFd(), message.c_str(), message.length(), MSG_NOSIGNAL);
 	if (send_flag == -1)
 	{
@@ -174,4 +189,14 @@ void	Client::setRegFlag(RegFlag flag, bool value)
 		this->_nickFlag = value;
 	else if (flag == FLAG_USER)
 		this->_userFlag = value;
+}
+
+bool	Client::getRegFlag(RegFlag flag) const
+{
+	if (flag == FLAG_PASS) 
+		return (this->_passFlag);
+	else if (flag == FLAG_NICK) 
+		return (this->_nickFlag);
+	else if (flag == FLAG_USER)
+		return (this->_userFlag);
 }
