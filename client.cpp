@@ -1,6 +1,6 @@
 #include "client.hpp"
 
-Client::Client(int fd): _fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false) 	{}
+Client::Client(int fd): _fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false) {}
 
 Client::~Client(){}
 

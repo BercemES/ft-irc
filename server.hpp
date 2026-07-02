@@ -2,6 +2,7 @@
 # define SERVER_HPP
 
 #include <iostream>
+#include <cctype>
 #include <vector>
 #include <map>
 
@@ -23,8 +24,9 @@ public:
 	server(/* args */);
 	~server();
 
-	void	handleCommand(Client& client, IRCMessage& msg);
-	const string	getPassword() const;
+	void						handleCommand(Client& client, IRCMessage& msg);
+	const string				getPassword() const;
+	const std::map<int, Client>	getClients() const;
 };
 
 

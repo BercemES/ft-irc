@@ -36,3 +36,8 @@ const string	server::getPassword() const
 {
 	return (this->getPassword());
 }
+
+const std::map<int, Client> server::getClients() const
+{
+	return (this->_clients);
+}
