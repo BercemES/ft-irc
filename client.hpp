@@ -1,14 +1,13 @@
 #ifndef CLIENT_HPP
 # define CLIENT_HPP
 
+# include <iostream>
+# include <vector>
+# include <sys/socket.h>
 
-#include <iostream>
-#include <vector>
-#include <sys/socket.h>
+# include "replies.hpp"
 
 using std::string;
-using std::cout;
-using std::endl;
 
 struct IRCMessage {
 	string prefix;
@@ -25,7 +24,8 @@ enum NameType {
 enum RegFlag {
 	FLAG_PASS,
 	FLAG_NICK,
-	FLAG_USER 
+	FLAG_USER,
+	FLAG_REGISTERED
 };
 
 class Client
@@ -39,7 +39,8 @@ private:
 	bool	_passFlag;
 	bool	_nickFlag;
 	bool	_userFlag;
-	
+	bool	_isRegistered;
+
 	std::vector<IRCMessage>     _commandsOrder;
 
 	IRCMessage		parseIRC(const std::string& line);
@@ -53,9 +54,8 @@ public:
 	bool		hasCommands() const;
 	IRCMessage	getNextCommand();
 	bool		isFullyRegistered() const;
-	bool		checkReg() const;
 	
-	void		sendMessage(const std::string& message);
+	void		sendMessage(const std::string& message) const;
 
 
 	string		getName(NameType type) const;
@@ -63,6 +63,7 @@ public:
 	int			getFd() const;
 	void		setRegFlag(RegFlag flag, bool value);
 	bool		getRegFlag(RegFlag flag) const;
+	
 
 
 

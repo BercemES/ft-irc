@@ -1,6 +1,7 @@
 #include "client.hpp"
 
-Client::Client(int fd): _fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false) {}
+Client::Client(int fd): 
+	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false), _isRegistered(false) {}
 
 Client::~Client(){}
 
@@ -115,20 +116,6 @@ bool	Client::isFullyRegistered() const
 	return (this->_nickFlag && this->_passFlag && this->_userFlag);
 }
 
-bool	Client::checkReg() const
-{
-	if (!this->isFullyRegistered())
-		return (false);
-	/*
-	RPL_WELCOME (001) "<client> :Welcome to the <networkname> Network, <nick>[!<user>@<host>]"
-	RPL_YOURHOST (002) "<client> :Your host is <servername>, running version <version>"
-	RPL_CREATED (003) "<client> :This server was created <datetime>"
-	RPL_MYINFO (004) "<client> <servername> <version> <available user modes>
-  <available channel modes> [<channel modes with a parameter>]"
-  RPL_ISUPPORT (005) "<client> <1-13 tokens> :are supported by this server"
-	*/
-}
-
 
 string	Client::getName(NameType type) const
 {
@@ -169,8 +156,7 @@ int	Client::getFd() const
 	return (this->_fd);
 }
 
-
-void	Client::sendMessage(const string& message)
+void	Client::sendMessage(const string& message) const
 {
 	int send_flag;
 	
@@ -189,6 +175,8 @@ void	Client::setRegFlag(RegFlag flag, bool value)
 		this->_nickFlag = value;
 	else if (flag == FLAG_USER)
 		this->_userFlag = value;
+	else if (flag == FLAG_REGISTERED)
+        this->_isRegistered = value;
 }
 
 bool	Client::getRegFlag(RegFlag flag) const
@@ -199,4 +187,8 @@ bool	Client::getRegFlag(RegFlag flag) const
 		return (this->_nickFlag);
 	else if (flag == FLAG_USER)
 		return (this->_userFlag);
+	else if (flag == FLAG_REGISTERED)
+        return (this->_isRegistered);
+	return (false);
 }
+

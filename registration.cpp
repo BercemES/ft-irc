@@ -1,32 +1,26 @@
-#include "server.hpp"
-
-void handleCap(server& server, Client& client, const IRCMessage& msg)
-{
-	
-	
-}
+#include "command.hpp"
 
 void handlePass(const server& server, Client& client, const IRCMessage& msg)
 {
 	if (msg.params[0].empty())
 	{
-		client.sendMessage(Replies::ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+		client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
 		return ;
 	}	
 	if (client.isFullyRegistered())
 	{
-		client.sendMessage(Replies::ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));
+		client.sendMessage(ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));
 		return ;
 	}
 	if (msg.params[0] != server.getPassword())
 	{
-		client.sendMessage(Replies::ERR_PASSWDMISMATCH(client.getName(TYPE_NICK)));
+		client.sendMessage(ERR_PASSWDMISMATCH(client.getName(TYPE_NICK)));
 		//sunucuyu kapatacaksak o fonksiyon gelecek.
 	}
 	client.setRegFlag(FLAG_PASS, true);
 }
 
-static bool	checkNickname( const string nick)
+bool	checkNickname( const string nick)
 {
 	string	acceptableSymbols = "[]\\`_^{|}";
 
@@ -45,7 +39,7 @@ static bool	checkNickname( const string nick)
 	return (true);
 }
 
-static bool	nicknameInUse(const server& server, const std::string& nick)
+bool	nicknameInUse(const server& server, const std::string& nick)
 {
 	std::map<int, Client>					clients;
 	std::map<int, Client>::const_iterator	it;
@@ -65,17 +59,17 @@ void handleNick(server& server, Client& client, const IRCMessage& msg)
 		return ;
 	if (msg.params[0].empty())
 	{
-		client.sendMessage(Replies::ERR_NONICKNAMEGIVEN(client.getName(TYPE_NICK)));
+		client.sendMessage(ERR_NONICKNAMEGIVEN(client.getName(TYPE_NICK)));
 		return ;
 	}
 	if (!checkNickname(msg.params[0]))
 	{
-		client.sendMessage(Replies::ERR_ERRONEUSNICKNAME(client.getName(TYPE_NICK), msg.params[0]));
+		client.sendMessage(ERR_ERRONEUSNICKNAME(client.getName(TYPE_NICK), msg.params[0]));
 		return ;
 	}
 	if (nicknameInUse(server, msg.params[0]))
 	{
-		client.sendMessage(Replies::ERR_NICKNAMEINUSE(client.getName(TYPE_NICK), msg.params[0]));
+		client.sendMessage(ERR_NICKNAMEINUSE(client.getName(TYPE_NICK), msg.params[0]));
 		return ;
 	}
 	string old_nick = client.getName(TYPE_NICK);
@@ -86,7 +80,7 @@ void handleNick(server& server, Client& client, const IRCMessage& msg)
 	In these cases, the <source> of the message will be the old nickname 
 	[ [ "!" user ] "@" host ] of the user who is changing their nickname.
 	*/
-	client.checkReg();
+	server.checkReg(client);
 }
 
 void handleUser(server& server, Client& client, const IRCMessage& msg)
@@ -95,12 +89,12 @@ void handleUser(server& server, Client& client, const IRCMessage& msg)
 		return ;
 	if (client.isFullyRegistered())
 	{
-		client.sendMessage(Replies::ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));
+		client.sendMessage(ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));
 		return ;
 	}
-	if (msg.params.empty() || msg.params[0].length() < 1 || msg.params.size() != 4)
+	if (msg.params.empty() || msg.params[0].length() < 1 || msg.params.size() < 4)
 	{
-		client.sendMessage(Replies::ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+		client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
 		return ;
 	}
 	string userlen_str = server.getIsupport("USERLEN");
@@ -110,24 +104,8 @@ void handleUser(server& server, Client& client, const IRCMessage& msg)
 	string username = msg.params[0];
 	if (msg.params[0].length() > max_userlen)
 		username.erase(max_userlen);
-	client.setName(TYPE_USER, username);
+	client.setName(TYPE_USER, ("~" + username));
 	client.setName(TYPE_REAL, msg.params.back());
 	client.setRegFlag(FLAG_USER, true);
-	//ident protokol durumuna göre tilde koyulacak username başına !!!
+	server.checkReg(client);
 }
-
-void	handleMotd(server& server, Client& client, const IRCMessage& msg)
-{
-
-}
-
-void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
-{
-
-}
-
-void	handleNotice(server& server, Client& client, const IRCMessage& msg)
-{
-
-}
-

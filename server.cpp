@@ -1,35 +1,53 @@
 #include "server.hpp"
 
-//void server::initCommands()
-//{
-//    _commands["PASS"] = &handleCap();
-//    _commands["PASS"] = &handlePass();
-//    _commands["NICK"] = &handleNick();
-//    _commands["USER"] = &handleUser();
-//	//...
-//}
-
-void server::handleCommand(Client& client, IRCMessage& msg)
+void	server::initCommands()
 {
-	std::map<std::string, Acommand*>::iterator it;
-    
+	_commands["PASS"] = &Command::handlePass;
+	_commands["NICK"] = &Command::handleNick;
+	_commands["USER"] = &Command::handleUser;
+	_commands["MOTD"] = &Command::handleMotd;
+	_commands["PRIVMSG"]= &Command::handlePrivmsg;
+	_commands["NOTICE"] = &Command::handleNotice;
+	//...
+}
+
+void	server::handleCommand(Client& client, IRCMessage& msg)
+{
 	if (msg.command.empty())
-        return ;
-	it = _commands.find(msg.command);
+		return ;
+	std::map<std::string, CmdFunc>::iterator it = _commands.find(msg.command);
 	if (it == _commands.end())
-    {
-        cout << ("421 " + msg.command + " :Unknown command") << endl;
-        return ;
-    }
+	{
+		client.sendMessage(ERR_UNKNOWNCOMMAND(client.getName(TYPE_NICK), msg.command));
+		return ;
+	}
 	if (!client.isFullyRegistered() 
 		&& msg.command != "PASS" 
 		&& msg.command != "NICK" 
 		&& msg.command != "USER")
 	{
-		cout << ("451 :You have not registered") << endl;
+		client.sendMessage(ERR_NOTREGISTERED(client.getName(TYPE_NICK)));
 		return ;
 	}
-	it->second->execute(*this, client, msg);
+	it->second(*this, client, msg);
+	
+}
+
+bool	server::checkReg(Client& client) const
+{
+	if (client.getRegFlag(FLAG_REGISTERED))
+		return;
+	if (client.isFullyRegistered())
+	{
+		client.setRegFlag(FLAG_REGISTERED, true);
+		client.sendMessage(RPL_WELCOME(client.getName(TYPE_NICK), client.getName(TYPE_USER), "localhost"));
+		client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
+		client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), this->getCreationDate()));
+		client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));
+	}
+	/*
+	RPL_ISUPPORT (005) "<client> <1-13 tokens> :are supported by this server"
+	*/
 }
 
 const string	server::getPassword() const 
@@ -37,7 +55,7 @@ const string	server::getPassword() const
 	return (this->_password);
 }
 
-const std::map<int, Client> server::getClients() const
+const std::map<int, Client>& server::getClients() const
 {
 	return (this->_clients);
 }
