@@ -3,7 +3,7 @@
 Client::Client(int fd): 
 	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false), _isRegistered(false) {}
 
-Client::~Client(){}
+Client::~Client() {}
 
 
 string	Client::nextParam(const string& line, size_t& pos)
@@ -74,9 +74,14 @@ void	Client::appendToBuffer(const string& message)
 	{
 		line = _buffer.substr(0, pos);
 		_buffer.erase(0, pos + 2);
-		msg = parseIRC(line);
-		if (!msg.command.empty())
-			this->_commandsOrder.push_back(msg);
+		if (line.size() > IRC_MAX_LINE)
+			this->sendMessage(ERR_INPUTTOOLONG(this->getName(TYPE_NICK)));
+		else
+		{
+			msg = parseIRC(line);
+			if (!msg.command.empty())
+				this->_commandsOrder.push_back(msg);
+		}
 		pos = _buffer.find("\r\n");
 	}
 }

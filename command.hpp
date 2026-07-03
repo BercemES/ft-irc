@@ -1,8 +1,8 @@
 #ifndef COMMAND_HPP
 # define COMMAND_HPP
 
-# include "server.hpp"
 # include "client.hpp"
+class server;
 
 class Command {
 public:

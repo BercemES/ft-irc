@@ -32,6 +32,12 @@ inline string   RPL_ISUPPORT(const string& nick, const string& tokens)
 }
 
 //error
+
+inline string	ERR_INPUTTOOLONG(const string& client)
+{
+	return (":ircserv 417 " + client + " :Input line was too long\r\n");
+}
+
 inline string	ERR_UNKNOWNCOMMAND(const string& client, const string& command)
 {
     return (":ircserv 421 " + client + " " + command + " :Unknown command\r\n");

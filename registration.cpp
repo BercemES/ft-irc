@@ -1,4 +1,5 @@
 #include "command.hpp"
+#include "server.hpp"
 
 void handlePass(const server& server, Client& client, const IRCMessage& msg)
 {
@@ -41,13 +42,12 @@ bool	checkNickname( const string nick)
 
 bool	nicknameInUse(const server& server, const std::string& nick)
 {
-	std::map<int, Client>					clients;
+	std::map<int, Client>					clients = server.getClients();;
 	std::map<int, Client>::const_iterator	it;
 
-	clients = server.getClients();
 	for (it = clients.begin(); it != clients.end(); it++)
 	{
-		if (it->second.getName(TYPE_NICK) == nick)
+		if (Client::ircToLower(it->second.getName(TYPE_NICK)) == Client::ircToLower((nick)))
 			return (true);
 	}
 	return (false);

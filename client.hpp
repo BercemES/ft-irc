@@ -7,6 +7,8 @@
 
 # include "replies.hpp"
 
+# define IRC_MAX_LINE 510
+
 using std::string;
 
 struct IRCMessage {
@@ -30,43 +32,38 @@ enum RegFlag {
 
 class Client
 {
-private:
-	int		_fd;
-	string	_buffer;
-	string	_nickname;
-	string	_username;
-	string	_realname;
-	bool	_passFlag;
-	bool	_nickFlag;
-	bool	_userFlag;
-	bool	_isRegistered;
+	private:
+		int		_fd;
+		string	_buffer;
+		string	_nickname;
+		string	_username;
+		string	_realname;
+		bool	_passFlag;
+		bool	_nickFlag;
+		bool	_userFlag;
+		bool	_isRegistered;
 
-	std::vector<IRCMessage>     _commandsOrder;
+		std::vector<IRCMessage>     _commandsOrder;
 
-	IRCMessage		parseIRC(const std::string& line);
-	static string	nextParam(const std::string& line, size_t& pos);
-	static string	ircToLower(string str);
-public:
-	Client(int fd);
-	~Client();
+		IRCMessage		parseIRC(const std::string& line);
+		static string	nextParam(const std::string& line, size_t& pos);
+		
+	public:
+		Client(int fd);
+		~Client();
 
-	void		appendToBuffer(const std::string& message);
-	bool		hasCommands() const;
-	IRCMessage	getNextCommand();
-	bool		isFullyRegistered() const;
-	
-	void		sendMessage(const std::string& message) const;
+		static string	ircToLower(string str);
+		void			appendToBuffer(const std::string& message);
+		bool			hasCommands() const;
+		IRCMessage		getNextCommand();
+		bool			isFullyRegistered() const;
+		void			sendMessage(const std::string& message) const;
 
-
-	string		getName(NameType type) const;
-	void		setName(NameType type, const std::string& value);
-	int			getFd() const;
-	void		setRegFlag(RegFlag flag, bool value);
-	bool		getRegFlag(RegFlag flag) const;
-	
-
-
-
+		int				getFd() const;
+		void			setName(NameType type, const std::string& value);
+		string			getName(NameType type) const;
+		void			setRegFlag(RegFlag flag, bool value);
+		bool			getRegFlag(RegFlag flag) const;
 };
 
 
