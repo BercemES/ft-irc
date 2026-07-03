@@ -28,10 +28,31 @@ inline string   RPL_MYINFO(const string& nick, const string& version, const stri
 
 inline string   RPL_ISUPPORT(const string& nick, const string& tokens)
 {
-    return ("::ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
+    return (":ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
+}
+
+//RPL
+inline string	RPL_MOTDSTART(const string& client)
+{
+	return (":ircserv 375 " + client + " :- ircserv Message of the day -\r\n");
+}
+
+inline string	RPL_MOTD(const string& client, const string& lineOfTheMotd)
+{
+	return (":ircserv 372 " + client + " :" + lineOfTheMotd + "\r\n");
+}
+
+inline string	RPL_ENDOFMOTD(const string& client)
+{
+	return (":ircserv 376 " + client + " :End of /MOTD command.\r\n");
 }
 
 //error
+
+inline string	ERR_NOSUCHSERVER(const string& client, const string& serverName)
+{
+	return (":ircserv 402 " + client + serverName + " :No such server\r\n");
+}
 
 inline string	ERR_INPUTTOOLONG(const string& client)
 {
