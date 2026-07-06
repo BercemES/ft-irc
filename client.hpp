@@ -42,6 +42,8 @@ class Client
 		bool	_nickFlag;
 		bool	_userFlag;
 		bool	_isRegistered;
+		string	_host;
+
 
 		std::vector<IRCMessage>     _commandsOrder;
 
@@ -59,6 +61,7 @@ class Client
 		bool			isFullyRegistered() const;
 		void			sendMessage(const std::string& message) const;
 
+		string			getHost() const;
 		int				getFd() const;
 		void			setName(NameType type, const std::string& value);
 		string			getName(NameType type) const;

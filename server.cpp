@@ -40,7 +40,7 @@ bool	server::checkReg(Client& client) const
 	if (client.isFullyRegistered())
 	{
 		client.setRegFlag(FLAG_REGISTERED, true);
-		client.sendMessage(RPL_WELCOME(client.getName(TYPE_NICK), client.getName(TYPE_USER), "localhost"));
+		client.sendMessage(RPL_WELCOME(client.getName(TYPE_NICK), client.getName(TYPE_USER), client.getHost()));
 		client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
 		client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), this->getCreationDate()));
 		client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));

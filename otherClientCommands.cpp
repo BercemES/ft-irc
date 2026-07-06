@@ -74,20 +74,17 @@ void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
 		{
 			if (*it == itCli->second.getName(TYPE_NICK))
 			{
-				client.sendMessage();
+				string	text;
+				text = ":" + client.getName(TYPE_NICK) + "!" + client.getName(TYPE_USER) +
+				"@" + client.getHost() + " PRIVMSG " + *it + " :" + msg.params.back() + "\r\n";
+				client.sendMessage(text);
 				findFlag = true;
 				break ;
 			}
-			
+			else
+				client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
 		}
-		
-		
-		
 	}
-	
-	
-	
-	
 }
 
 void	handleNotice(server& server, Client& client, const IRCMessage& msg)

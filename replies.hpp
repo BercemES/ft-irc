@@ -13,7 +13,7 @@ inline string   RPL_WELCOME(const string& nick, const string& user, const string
 
 inline string   RPL_YOURHOST(const string& nick, const string& version)
 {
-    return (":ircserv 002 " + nick + " :Your host is ircserv" + ", running version " + version + "\r\n");
+    return (":ircserv 002 " + nick + " :Your host is ircserv, running version " + version + "\r\n");
 }
 
 inline string   RPL_CREATED(const string& nick, const string& datetime)
@@ -48,6 +48,11 @@ inline string	RPL_ENDOFMOTD(const string& client)
 }
 
 //error
+
+inline string	ERR_NOSUCHNICK(const string& client, const string& nickname)
+{
+	return (":ircserv 401 " + client + nickname + " :No such nick/channel\r\n");
+}
 
 inline string	ERR_NOSUCHSERVER(const string& client, const string& serverName)
 {

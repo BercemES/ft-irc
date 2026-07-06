@@ -122,6 +122,17 @@ bool	Client::isFullyRegistered() const
 }
 
 
+string	Client::getHost() const
+{
+	return (this->_host);
+}
+
+int	Client::getFd() const
+{
+	return (this->_fd);
+}
+
+
 string	Client::getName(NameType type) const
 {
 	if (type == TYPE_NICK)
