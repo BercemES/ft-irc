@@ -36,54 +36,71 @@ std::vector<string>	splitTargets(Client& client, const IRCMessage& msg)
 	return (targets);
 }
 
+void	sendToChannel(server& server, Client& client, const IRCMessage& msg, std::vector<string>::iterator it)
+{
+	map<int, Channel> chan = server.getChannels();
+	map<int, Channel>::iterator itChan = chan.begin();
+	for (itChan; itChan != chan.end(); itChan++)
+	{
+		if (*it == itChan->second.getChannelName())
+		{
+			if (!isBanned(client.getName(TYPE_NICK)))//mode flagi olarak +n no external msg kullanırsak || olarak o da eklenecek
+			{
+				string	text;
+				text = ":" + itChan->second.getChannelName() + "!" + client.getName(TYPE_USER) +
+				"@" + client.getHost() + " PRIVMSG " + *it + " :" + msg.params.back() + "\r\n";
+				for (i = 0; i < chan.getUser(); i++) //channeldaki tüm kullanıcılara mesajı gönder döngüsü
+					client.sendMessage(text);
+				return ;
+			}
+			else
+			{
+				client.sendMessage(ERR_CANNOTSENDTOCHAN(client.getName(TYPE_NICK), msg.params[0]));
+				return ;
+			}
+		}
+	}
+	client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
+}
+
+void	sendToUser(server& server, Client& client, const IRCMessage& msg, std::vector<string>::iterator it)
+{
+	map<int, Client> cli = server.getClients();
+	map<int, Client>::iterator itCli = cli.begin();
+	for (itCli; itCli != cli.end(); itCli++)
+	{
+		if (*it == itCli->second.getName(TYPE_NICK))
+		{
+			string	text;
+			text = ":" + client.getName(TYPE_NICK) + "!" + client.getName(TYPE_USER) +
+			"@" + client.getHost() + " PRIVMSG " + *it + " :" + msg.params.back() + "\r\n";
+			client.sendMessage(text);
+			return ;
+		}
+	}
+	client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
+}
+
 void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
 {
-	if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
+	if ( msg.params[0].empty())
 	{
-		client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+		client.sendMessage(ERR_NORECIPIENT(client.getName(TYPE_NICK), msg.command));
+		return ;
+	}
+	if (msg.params[1].empty())
+	{
+		client.sendMessage(ERR_NOTEXTTOSEND(client.getName(TYPE_NICK)));
 		return ;
 	}
 	std::vector<string>	targets = splitTargets(client, msg);
 	std::vector<string>::iterator it;
-
 	for (it = targets.begin(); it < targets.end(); it++)
 	{
 		if ((*it)[0] == '#' || (*it)[0] == '&')
-		{
-			/*if()Böyle bir channel var mı?
-			{
-				if(varsa bu channela bu kullanıcı kayıtlı mı?)
-					istemci bu kanaldan yasaklanmış (banned) durumdaysa ve 
-					herhangi bir yasak istisnası (ban exception) kapsamında değilse, 
-					mesaj teslim edilmez ve komut sessizce başarısız olur
-					(istemciye herhangi bir hata gönderilmeyebilir). 
-					Ayrıca Moderate mesajı kabul etmeyebilir ya da değiştirebilir.!!
-				else 
-					durumunda ERR_CANNOTSENDTOCHAN (404)
-			}
-			else
-				ERR_NOSUCHCHANNEL
-			*** eğer STATUSMSG adlı RPL_ISUPPORT ta başka kanal türleri eklemezsek 
-			kullanıcı bunlarla başlayan bir mesaj göndermemeli ama hata göndermiyoruz. 
-			*/
-		}
-		map<int, Client> cli = server.getClients();
-		map<int, Client>::iterator itCli = cli.begin();
-		bool	findFlag = false;
-		for (itCli; itCli != cli.end(); itCli++)
-		{
-			if (*it == itCli->second.getName(TYPE_NICK))
-			{
-				string	text;
-				text = ":" + client.getName(TYPE_NICK) + "!" + client.getName(TYPE_USER) +
-				"@" + client.getHost() + " PRIVMSG " + *it + " :" + msg.params.back() + "\r\n";
-				client.sendMessage(text);
-				findFlag = true;
-				break ;
-			}
-			else
-				client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
-		}
+			sendToChannel(server, client, msg, it);
+		else
+			sendToUser(server, client, msg, it);
 	}
 }
 

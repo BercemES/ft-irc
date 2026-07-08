@@ -11,6 +11,7 @@
 # include "client.hpp"
 # include "command.hpp"
 # include "replies.hpp"
+# include "channel.hpp"
 
 using std::string;
 using std::vector;
@@ -26,7 +27,7 @@ class server
 private:
 	int							_serverFd;
 	map<int, Client>			_clients;
-	//_channels;
+	map<int, Channel>			_channels;
 
 	const string	_password;
 	map<string, string> _RPL_ISUPPORT;
