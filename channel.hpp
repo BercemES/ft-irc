@@ -3,18 +3,22 @@
 
 # include <string>
 # include <map>
+# include <set>
 # include <cstddef>
 
 class Client;
 
 using std::string;
 using std::map;
+using std::set;
 
 class Channel
 {
 	private:
 		string				_name;
 		map<int, Client*>	_members;
+		set<int>			_operators;
+		set<int>			_invited;
 
 	public:
 		explicit Channel(const string& name);
@@ -25,6 +29,13 @@ class Channel
 		bool						isMember(Client* client) const;
 		bool						isEmpty() const;
 		size_t						size() const;
+
+		void						addOperator(Client* client);
+		void						removeOperator(Client* client);
+		bool						isOperator(Client* client) const;
+
+		void						invite(Client* client);
+		bool						isInvited(Client* client) const;
 
 		const string				&getName() const;
 		const map<int, Client*>		&getMembers() const;
