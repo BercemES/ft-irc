@@ -2,7 +2,7 @@
 #include "client.hpp"
 
 Channel::Channel(const string& name)
-	: _name(name)
+	: _name(name), _topicTime(0)
 {}
 
 Channel::~Channel() {}
@@ -77,6 +77,33 @@ bool	Channel::isInvited(Client* client) const
 	if (client == NULL)
 		return (false);
 	return (_invited.find(client->getFd()) != _invited.end());
+}
+
+bool	Channel::hasTopic() const
+{
+	return (!_topic.empty());
+}
+
+void	Channel::setTopic(const string& topic, const string& setterNick)
+{
+	_topic = topic;
+	_topicSetter = setterNick;
+	_topicTime = std::time(NULL);
+}
+
+time_t	Channel::getTopicTime() const
+{
+	return (_topicTime);
+}
+
+const string	&Channel::getTopic() const
+{
+	return (_topic);
+}
+
+const string	&Channel::getTopicSetter() const
+{
+	return (_topicSetter);
 }
 
 const string	&Channel::getName() const
