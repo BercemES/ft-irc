@@ -23,6 +23,10 @@ class Channel
 		string				_topic;
 		string				_topicSetter;
 		time_t				_topicTime;
+		string				_key;
+		size_t				_userLimit;
+		bool				_inviteOnly;
+		bool				_topicRestricted;
 
 	public:
 		explicit Channel(const string& name);
@@ -46,6 +50,23 @@ class Channel
 		time_t						getTopicTime() const;
 		const string				&getTopic() const;
 		const string				&getTopicSetter() const;
+
+		bool						isInviteOnly() const;
+		void						setInviteOnly(bool on);
+		bool						isTopicRestricted() const;
+		void						setTopicRestricted(bool on);
+
+		bool						hasKey() const;
+		bool						checkKey(const string& key) const;
+		void						setKey(const string& key);
+		void						clearKey();
+
+		bool						hasUserLimit() const;
+		bool						isFull() const;
+		void						setUserLimit(size_t limit);
+		void						clearUserLimit();
+
+		string						getModeString() const;
 
 		const string				&getName() const;
 		const map<int, Client*>		&getMembers() const;
