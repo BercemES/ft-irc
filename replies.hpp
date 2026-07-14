@@ -13,7 +13,7 @@ inline string   RPL_WELCOME(const string& nick, const string& user, const string
 
 inline string   RPL_YOURHOST(const string& nick, const string& version)
 {
-    return (":ircserv 002 " + nick + " :Your host is ircserv" + ", running version " + version + "\r\n");
+    return (":ircserv 002 " + nick + " :Your host is ircserv, running version " + version + "\r\n");
 }
 
 inline string   RPL_CREATED(const string& nick, const string& datetime)
@@ -28,10 +28,51 @@ inline string   RPL_MYINFO(const string& nick, const string& version, const stri
 
 inline string   RPL_ISUPPORT(const string& nick, const string& tokens)
 {
-    return ("::ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
+    return (":ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
+}
+
+//RPL
+inline string	RPL_MOTDSTART(const string& client)
+{
+	return (":ircserv 375 " + client + " :- ircserv Message of the day -\r\n");
+}
+
+inline string	RPL_MOTD(const string& client, const string& lineOfTheMotd)
+{
+	return (":ircserv 372 " + client + " :" + lineOfTheMotd + "\r\n");
+}
+
+inline string	RPL_ENDOFMOTD(const string& client)
+{
+	return (":ircserv 376 " + client + " :End of /MOTD command.\r\n");
 }
 
 //error
+
+inline string	ERR_NOSUCHNICK(const string& client, const string& nickname)
+{
+	return (":ircserv 401 " + client + nickname + " :No such nick/channel\r\n");
+}
+
+inline string	ERR_NOSUCHSERVER(const string& client, const string& serverName)
+{
+	return (":ircserv 402 " + client + serverName + " :No such server\r\n");
+}
+
+inline string	ERR_CANNOTSENDTOCHAN(const string& client, const string& channel)
+{
+	return (":ircserv 404 " + client + channel + " :Cannot send to channel\r\n");
+}
+
+inline string	ERR_NORECIPIENT(const string& client, const string& command)
+{
+	return (":ircserv 411 " + client + " :No recipient given" + command +"\r\n");
+}
+
+inline string	ERR_NOTEXTTOSEND(const string& client)
+{
+	return (":ircserv 412 " + client + " :No text to send\r\n");
+}
 
 inline string	ERR_INPUTTOOLONG(const string& client)
 {

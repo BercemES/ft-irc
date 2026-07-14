@@ -1,7 +1,7 @@
 #include "command.hpp"
 #include "server.hpp"
 
-void handlePass(const server& server, Client& client, const IRCMessage& msg)
+void Command::handlePass(server& server, Client& client, const IRCMessage& msg)
 {
 	if (msg.params[0].empty())
 	{
@@ -53,7 +53,7 @@ bool	nicknameInUse(const server& server, const std::string& nick)
 	return (false);
 }
 
-void handleNick(server& server, Client& client, const IRCMessage& msg)
+void Command::handleNick(server& server, Client& client, const IRCMessage& msg)
 {
 	if (!client.getRegFlag(FLAG_PASS))
 		return ;
@@ -72,18 +72,26 @@ void handleNick(server& server, Client& client, const IRCMessage& msg)
 		client.sendMessage(ERR_NICKNAMEINUSE(client.getName(TYPE_NICK), msg.params[0]));
 		return ;
 	}
-	string old_nick = client.getName(TYPE_NICK);
-	client.setName(TYPE_NICK, msg.params[0]);
-	client.setRegFlag(FLAG_NICK, true);
-	/*
-	NICK command was successful, and to inform other clients about the change of nickname. 
-	In these cases, the <source> of the message will be the old nickname 
-	[ [ "!" user ] "@" host ] of the user who is changing their nickname.
-	*/
-	server.checkReg(client);
+	if (!client.isFullyRegistered())
+	{
+		client.setName(TYPE_NICK, msg.params[0]);
+		client.setRegFlag(FLAG_NICK, true);
+		server.checkReg(client);
+	}
+	else
+	{
+		map<int, Channel> chan = server.getChannels();
+		string	oldNick = client.getName(TYPE_NICK);
+		client.setName(TYPE_NICK, msg.params[0]);
+		string	text = ":" + oldNick + "!" + client.getName(TYPE_USER) + "@" + client.getHost() + " "
+			+ msg.command + " " + client.getName(TYPE_NICK) + "\r\n";
+		for (i = 0; i < chan.getUser(); i++) //channeldaki tüm kullanıcılara mesajı gönder döngüsü
+			client.sendMessage(text);
+	}
+	
 }
 
-void handleUser(server& server, Client& client, const IRCMessage& msg)
+void Command::handleUser(server& server, Client& client, const IRCMessage& msg)
 {
 	if (!client.getRegFlag(FLAG_PASS))
 		return ;
