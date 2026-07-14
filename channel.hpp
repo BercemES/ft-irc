@@ -4,6 +4,7 @@
 # include <string>
 # include <map>
 # include <set>
+# include <ctime>
 # include <cstddef>
 
 class Client;
@@ -19,6 +20,9 @@ class Channel
 		map<int, Client*>	_members;
 		set<int>			_operators;
 		set<int>			_invited;
+		string				_topic;
+		string				_topicSetter;
+		time_t				_topicTime;
 
 	public:
 		explicit Channel(const string& name);
@@ -36,6 +40,12 @@ class Channel
 
 		void						invite(Client* client);
 		bool						isInvited(Client* client) const;
+
+		bool						hasTopic() const;
+		void						setTopic(const string& topic, const string& setterNick);
+		time_t						getTopicTime() const;
+		const string				&getTopic() const;
+		const string				&getTopicSetter() const;
 
 		const string				&getName() const;
 		const map<int, Client*>		&getMembers() const;
