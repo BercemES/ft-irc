@@ -68,6 +68,8 @@ class Channel
 
 		string						getModeString() const;
 
+		void						broadcast(const string& message, Client* except = NULL) const;
+
 		const string				&getName() const;
 		const map<int, Client*>		&getMembers() const;
 };
