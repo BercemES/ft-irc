@@ -38,6 +38,9 @@ std::vector<string>	splitTargets(Client& client, const IRCMessage& msg)
 
 void	sendToChannel(server& server, Client& client, const IRCMessage& msg, std::vector<string>::iterator it)
 {
+	bool	isNotice = false;
+	if (msg.command == "NOTICE")
+		isNotice = true;
 	map<int, Channel> chan = server.getChannels();
 	map<int, Channel>::iterator itChan = chan.begin();
 	for (itChan; itChan != chan.end(); itChan++)
@@ -48,23 +51,28 @@ void	sendToChannel(server& server, Client& client, const IRCMessage& msg, std::v
 			{
 				string	text;
 				text = ":" + itChan->second.getChannelName() + "!" + client.getName(TYPE_USER) +
-				"@" + client.getHost() + " PRIVMSG " + *it + " :" + msg.params.back() + "\r\n";
+				"@" + client.getHost() + msg.command + *it + " :" + msg.params.back() + "\r\n";
 				for (i = 0; i < chan.getUser(); i++) //channeldaki tüm kullanıcılara mesajı gönder döngüsü
 					client.sendMessage(text);
 				return ;
 			}
 			else
 			{
-				client.sendMessage(ERR_CANNOTSENDTOCHAN(client.getName(TYPE_NICK), msg.params[0]));
+				if (!isNotice)
+					client.sendMessage(ERR_CANNOTSENDTOCHAN(client.getName(TYPE_NICK), msg.params[0]));
 				return ;
 			}
 		}
 	}
-	client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
+	if (!isNotice)
+		client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
 }
 
 void	sendToUser(server& server, Client& client, const IRCMessage& msg, std::vector<string>::iterator it)
 {
+	bool	isNotice = false;
+	if (msg.command == "NOTICE")
+		isNotice = true;
 	map<int, Client> cli = server.getClients();
 	map<int, Client>::iterator itCli = cli.begin();
 	for (itCli; itCli != cli.end(); itCli++)
@@ -78,10 +86,11 @@ void	sendToUser(server& server, Client& client, const IRCMessage& msg, std::vect
 			return ;
 		}
 	}
-	client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
+	if (!isNotice)
+		client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
 }
 
-void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
+void	Command::handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
 {
 	if ( msg.params[0].empty())
 	{
@@ -104,8 +113,18 @@ void	handlePrivmsg(server& server, Client& client, const IRCMessage& msg)
 	}
 }
 
-void	handleNotice(server& server, Client& client, const IRCMessage& msg)
+void	Command::handleNotice(server& server, Client& client, const IRCMessage& msg)
 {
-
+	if ( msg.params[0].empty() || msg.params[1].empty())
+		return ;
+	std::vector<string>	targets = splitTargets(client, msg);
+	std::vector<string>::iterator it;
+	for (it = targets.begin(); it < targets.end(); it++)
+	{
+		if ((*it)[0] == '#' || (*it)[0] == '&')
+			sendToChannel(server, client, msg, it);
+		else
+			sendToUser(server, client, msg, it);
+	}
 }
 

@@ -167,11 +167,6 @@ void	Client::setName(NameType type, const std::string& value)
 		this->_realname = value;
 }
 
-int	Client::getFd() const
-{
-	return (this->_fd);
-}
-
 void	Client::sendMessage(const string& message) const
 {
 	int send_flag;
