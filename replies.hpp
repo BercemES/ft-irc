@@ -81,4 +81,56 @@ inline string	ERR_NICKNAMEINUSE(const string& client, const string& nick)
 
 //ERR_NICKCOLLISION (436) "<client> <nick> :Nickname collision KILL from <user>@<host>" -----İki sunucu bağlı olarak işlem yapmadığımız için ele almıyoruz.
 
+//channel
+
+inline string	RPL_NOTOPIC(const string& nick, const string& channel)
+{
+	return (":ircserv 331 " + nick + " " + channel + " :No topic is set\r\n");
+}
+
+inline string	RPL_TOPIC(const string& nick, const string& channel, const string& topic)
+{
+	return (":ircserv 332 " + nick + " " + channel + " :" + topic + "\r\n");
+}
+
+inline string	RPL_TOPICWHOTIME(const string& nick, const string& channel, const string& setter, const string& setat)
+{
+	return (":ircserv 333 " + nick + " " + channel + " " + setter + " " + setat + "\r\n");
+}
+
+inline string	RPL_NAMREPLY(const string& nick, const string& channel, const string& names)
+{
+	return (":ircserv 353 " + nick + " = " + channel + " :" + names + "\r\n");
+}
+
+inline string	RPL_ENDOFNAMES(const string& nick, const string& channel)
+{
+	return (":ircserv 366 " + nick + " " + channel + " :End of /NAMES list\r\n");
+}
+
+inline string	ERR_NOSUCHCHANNEL(const string& client, const string& channel)
+{
+	return (":ircserv 403 " + client + " " + channel + " :No such channel\r\n");
+}
+
+inline string	ERR_CHANNELISFULL(const string& client, const string& channel)
+{
+	return (":ircserv 471 " + client + " " + channel + " :Cannot join channel (+l)\r\n");
+}
+
+inline string	ERR_INVITEONLYCHAN(const string& client, const string& channel)
+{
+	return (":ircserv 473 " + client + " " + channel + " :Cannot join channel (+i)\r\n");
+}
+
+inline string	ERR_BADCHANNELKEY(const string& client, const string& channel)
+{
+	return (":ircserv 475 " + client + " " + channel + " :Cannot join channel (+k)\r\n");
+}
+
+inline string	ERR_BADCHANMASK(const string& client, const string& channel)
+{
+	return (":ircserv 476 " + client + " " + channel + " :Bad Channel Mask\r\n");
+}
+
 #endif
