@@ -1,8 +1,11 @@
 #include "channel.hpp"
 #include "client.hpp"
 
+#include <sstream>
+
 Channel::Channel(const string& name)
-	: _name(name), _topicTime(0)
+	: _name(name), _topicTime(0), _userLimit(0), _inviteOnly(false),
+	  _topicRestricted(false)
 {}
 
 Channel::~Channel() {}
@@ -104,6 +107,92 @@ const string	&Channel::getTopic() const
 const string	&Channel::getTopicSetter() const
 {
 	return (_topicSetter);
+}
+
+bool	Channel::isInviteOnly() const
+{
+	return (_inviteOnly);
+}
+
+void	Channel::setInviteOnly(bool on)
+{
+	_inviteOnly = on;
+}
+
+bool	Channel::isTopicRestricted() const
+{
+	return (_topicRestricted);
+}
+
+void	Channel::setTopicRestricted(bool on)
+{
+	_topicRestricted = on;
+}
+
+bool	Channel::hasKey() const
+{
+	return (!_key.empty());
+}
+
+bool	Channel::checkKey(const string& key) const
+{
+	return (_key == key);
+}
+
+void	Channel::setKey(const string& key)
+{
+	_key = key;
+}
+
+void	Channel::clearKey()
+{
+	_key.clear();
+}
+
+bool	Channel::hasUserLimit() const
+{
+	return (_userLimit > 0);
+}
+
+bool	Channel::isFull() const
+{
+	if (_userLimit == 0)
+		return (false);
+	return (_members.size() >= _userLimit);
+}
+
+void	Channel::setUserLimit(size_t limit)
+{
+	_userLimit = limit;
+}
+
+void	Channel::clearUserLimit()
+{
+	_userLimit = 0;
+}
+
+string	Channel::getModeString() const
+{
+	std::ostringstream	oss;
+	string				modes = "+";
+	string				params;
+
+	if (_inviteOnly)
+		modes += "i";
+	if (_topicRestricted)
+		modes += "t";
+	if (hasKey())
+	{
+		modes += "k";
+		params += " " + _key;
+	}
+	if (hasUserLimit())
+	{
+		oss << _userLimit;
+		modes += "l";
+		params += " " + oss.str();
+	}
+	return (modes + params);
 }
 
 const string	&Channel::getName() const
