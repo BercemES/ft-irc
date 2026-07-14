@@ -204,3 +204,17 @@ const map<int, Client*>		&Channel::getMembers() const
 {
 	return (_members);
 }
+
+void	Channel::broadcast(const string& message, Client* except) const
+{
+	map<int, Client*>::const_iterator	it;
+
+	for (it = _members.begin(); it != _members.end(); ++it)
+	{
+		if (it->second == NULL)
+			continue ;
+		if (except != NULL && it->second == except)
+			continue ;
+		it->second->sendMessage(message);
+	}
+}
