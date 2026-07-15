@@ -20,6 +20,10 @@ private:
     // artik Client nesnesinde yasar (Asama 2: Client entegrasyonu).
     std::map<int, Client>       _clients;
 
+    // Komut adi -> handler. if-else yerine fonksiyon-pointer tablosu.
+    typedef void (*CmdFunc)(Server&, Client&, const IRCMessage&);
+    std::map<std::string, CmdFunc>  _commands;
+
 public:
     Server(const std::string& port, const std::string& password);
     ~Server();
@@ -41,14 +45,9 @@ private:
     void updatePollEvents(int fd);
     void handlePollEvents(size_t& i, int& ready);
 
-    // Komut dagitimi (su an if-else; Adim 3'te komut tablosuna donusecek)
+    // Komut dagitimi: fonksiyon-pointer tablosu (Command:: statik handler'lari)
+    void initCommands();
     void handleCommand(Client& client, const IRCMessage& msg);
-
-    void handleCap(Client& client, const IRCMessage& msg);
-    void handlePing(Client& client, const IRCMessage& msg);
-    void handleQuit(Client& client);
-
-    std::string upper(const std::string& str) const;
 };
 
 #endif

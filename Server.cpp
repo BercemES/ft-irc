@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "command.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -32,6 +33,7 @@ Server::Server(const std::string& port, const std::string& password)
     if (_password.empty())
         throw std::runtime_error("password cannot be empty");
     _port = static_cast<int>(value);
+    initCommands();
 }
 
 Server::~Server()
@@ -234,55 +236,24 @@ void Server::updatePollEvents(int fd)
     }
 }
 
-/* TODO: Adim 3'te bu if-else, bercem'in komut tablosu (map<string, CmdFunc>)
-   ile degistirilecek; NICK/USER/JOIN vb. tabloya birer satir olarak eklenecek. */
+void Server::initCommands()
+{
+    _commands["CAP"] = &Command::handleCap;
+    _commands["PING"] = &Command::handlePing;
+    _commands["QUIT"] = &Command::handleQuit;
+}
+
+/* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
+   ilgili Command:: statik handler'i cagrilir. Bilinmeyen komutlar simdilik
+   yoksayilir (ERR_UNKNOWNCOMMAND kayit akisi geldiginde eklenecek). */
 void Server::handleCommand(Client& client, const IRCMessage& msg)
 {
-    std::string cmd = upper(msg.command);
     std::cout << "fd=" << client.getFd() << " > " << msg.command << std::endl;
-    if (cmd == "CAP")
-        handleCap(client, msg);
-    else if (cmd == "PING")
-        handlePing(client, msg);
-    else if (cmd == "QUIT")
-        handleQuit(client);
-    else
+    std::map<std::string, CmdFunc>::iterator it = _commands.find(Command::upper(msg.command));
+    if (it == _commands.end())
+    {
         std::cout << "Pass to other commands module: " << msg.command << std::endl;
-}
-
-void Server::handleCap(Client& client, const IRCMessage& msg)
-{
-    std::string sub;
-    if (!msg.params.empty())
-        sub = upper(msg.params[0]);
-    if (sub == "END")
         return;
-    if (sub == "REQ")
-        client.sendMessage(":ircserv CAP * NAK :\r\n");
-    else
-        client.sendMessage(":ircserv CAP * LS :\r\n");
-}
-
-void Server::handlePing(Client& client, const IRCMessage& msg)
-{
-    std::string payload;
-    if (!msg.params.empty())
-        payload = msg.params[0];
-    if (payload.empty())
-        payload = "ircserv";
-    client.sendMessage("PONG :" + payload + "\r\n");
-}
-
-void Server::handleQuit(Client& client)
-{
-    client.sendMessage("ERROR :Closing Link\r\n");
-    client.setCloseAfterWrite(true);
-}
-
-std::string Server::upper(const std::string& str) const
-{
-    std::string out = str;
-    for (size_t i = 0; i < out.size(); ++i)
-        out[i] = static_cast<char>(std::toupper(static_cast<unsigned char>(out[i])));
-    return out;
+    }
+    it->second(*this, client, msg);
 }
