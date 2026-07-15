@@ -9,6 +9,7 @@
 #include <cstring>
 #include <csignal>
 #include <cctype>
+#include <ctime>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -34,6 +35,12 @@ Server::Server(const std::string& port, const std::string& password)
         throw std::runtime_error("password cannot be empty");
     _port = static_cast<int>(value);
     initCommands();
+    initIsupport();
+
+    std::time_t now = std::time(NULL);
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    _creationDate = buf;
 }
 
 Server::~Server()
@@ -256,4 +263,47 @@ void Server::handleCommand(Client& client, const IRCMessage& msg)
         return;
     }
     it->second(*this, client, msg);
+}
+
+void Server::initIsupport()
+{
+    _isupport["USERLEN"] = "15";
+}
+
+const std::string& Server::getPassword() const
+{
+    return _password;
+}
+
+const std::map<int, Client>& Server::getClients() const
+{
+    return _clients;
+}
+
+std::string Server::getIsupport(const std::string& key) const
+{
+    std::map<std::string, std::string>::const_iterator it = _isupport.find(key);
+    if (it == _isupport.end())
+        return "";
+    return it->second;
+}
+
+const std::string& Server::getCreationDate() const
+{
+    return _creationDate;
+}
+
+// Kayit tamamlandiginda (PASS+NICK+USER) hos geldin numeric'lerini gonderir.
+// Yalnizca client'i degistirir; Server durumunu okur (creationDate), o yuzden const.
+void Server::checkReg(Client& client) const
+{
+    if (client.getRegFlag(FLAG_REGISTERED))
+        return;
+    if (!client.isFullyRegistered())
+        return;
+    client.setRegFlag(FLAG_REGISTERED, true);
+    client.sendMessage(RPL_WELCOME(client.getName(TYPE_NICK), client.getName(TYPE_USER), client.getHost()));
+    client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
+    client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), getCreationDate()));
+    client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));
 }

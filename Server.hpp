@@ -24,11 +24,22 @@ private:
     typedef void (*CmdFunc)(Server&, Client&, const IRCMessage&);
     std::map<std::string, CmdFunc>  _commands;
 
+    std::map<std::string, std::string>  _isupport;      // RPL_ISUPPORT (005) tokenlari
+    std::string                 _creationDate;          // RPL_CREATED (003) icin
+
 public:
     Server(const std::string& port, const std::string& password);
     ~Server();
 
     void start();
+
+    // Kayit (registration) altyapisi — eski `server` sinifindan devralindi.
+    // Command:: handler'lari bu erisimcileri kullanir.
+    const std::string&              getPassword() const;
+    const std::map<int, Client>&    getClients() const;
+    std::string                     getIsupport(const std::string& key) const;
+    const std::string&              getCreationDate() const;
+    void                            checkReg(Client& client) const;
 
 private:
     Server();
@@ -47,6 +58,7 @@ private:
 
     // Komut dagitimi: fonksiyon-pointer tablosu (Command:: statik handler'lari)
     void initCommands();
+    void initIsupport();
     void handleCommand(Client& client, const IRCMessage& msg);
 };
 
