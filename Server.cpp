@@ -161,7 +161,8 @@ void Server::acceptClients()
         }
         setNonBlocking(fd);
         addPollFd(fd, POLLIN);
-        _clients.insert(std::make_pair(fd, Client(fd)));
+        std::map<int, Client>::iterator res = _clients.insert(std::make_pair(fd, Client(fd))).first;
+        res->second.setHost(inet_ntoa(addr.sin_addr));
         std::cout << "New client fd=" << fd << " ip=" << inet_ntoa(addr.sin_addr) << std::endl;
     }
 }
@@ -248,6 +249,9 @@ void Server::initCommands()
     _commands["CAP"] = &Command::handleCap;
     _commands["PING"] = &Command::handlePing;
     _commands["QUIT"] = &Command::handleQuit;
+    _commands["PASS"] = &Command::handlePass;
+    _commands["NICK"] = &Command::handleNick;
+    _commands["USER"] = &Command::handleUser;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa

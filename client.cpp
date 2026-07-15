@@ -130,6 +130,11 @@ string	Client::getHost() const
 	return (this->_host);
 }
 
+void	Client::setHost(const string& host)
+{
+	this->_host = host;
+}
+
 int	Client::getFd() const
 {
 	return (this->_fd);

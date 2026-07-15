@@ -17,6 +17,10 @@ public:
     static void         handlePing(Server& server, Client& client, const IRCMessage& msg);
     static void         handleQuit(Server& server, Client& client, const IRCMessage& msg);
 
+    static void         handlePass(Server& server, Client& client, const IRCMessage& msg);
+    static void         handleNick(Server& server, Client& client, const IRCMessage& msg);
+    static void         handleUser(Server& server, Client& client, const IRCMessage& msg);
+
     static std::string  upper(const std::string& str);
 };
 

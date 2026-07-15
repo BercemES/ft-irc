@@ -67,6 +67,7 @@ class Client
 		bool				closeAfterWrite() const;
 
 		std::string			getHost() const;
+		void				setHost(const std::string& host);
 		int					getFd() const;
 		void				setName(NameType type, const std::string& value);
 		std::string			getName(NameType type) const;
