@@ -21,6 +21,10 @@ public:
     static void         handleNick(Server& server, Client& client, const IRCMessage& msg);
     static void         handleUser(Server& server, Client& client, const IRCMessage& msg);
 
+    static void         handleMotd(Server& server, Client& client, const IRCMessage& msg);
+    static void         handlePrivmsg(Server& server, Client& client, const IRCMessage& msg);
+    static void         handleNotice(Server& server, Client& client, const IRCMessage& msg);
+
     static std::string  upper(const std::string& str);
 };
 

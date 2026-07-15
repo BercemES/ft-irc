@@ -252,18 +252,29 @@ void Server::initCommands()
     _commands["PASS"] = &Command::handlePass;
     _commands["NICK"] = &Command::handleNick;
     _commands["USER"] = &Command::handleUser;
+    _commands["MOTD"] = &Command::handleMotd;
+    _commands["PRIVMSG"] = &Command::handlePrivmsg;
+    _commands["NOTICE"] = &Command::handleNotice;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
-   ilgili Command:: statik handler'i cagrilir. Bilinmeyen komutlar simdilik
-   yoksayilir (ERR_UNKNOWNCOMMAND kayit akisi geldiginde eklenecek). */
+   ilgili Command:: statik handler'i cagrilir. */
 void Server::handleCommand(Client& client, const IRCMessage& msg)
 {
     std::cout << "fd=" << client.getFd() << " > " << msg.command << std::endl;
-    std::map<std::string, CmdFunc>::iterator it = _commands.find(Command::upper(msg.command));
+    std::string cmd = Command::upper(msg.command);
+    std::map<std::string, CmdFunc>::iterator it = _commands.find(cmd);
     if (it == _commands.end())
     {
-        std::cout << "Pass to other commands module: " << msg.command << std::endl;
+        client.sendMessage(ERR_UNKNOWNCOMMAND(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+    // Kayit kapisi: kayitli olmayan istemci yalnizca kayit komutlarini
+    // kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
+    if (!client.isFullyRegistered()
+        && cmd != "PASS" && cmd != "NICK" && cmd != "USER")
+    {
+        client.sendMessage(ERR_NOTREGISTERED(client.getName(TYPE_NICK)));
         return;
     }
     it->second(*this, client, msg);
@@ -277,6 +288,11 @@ void Server::initIsupport()
 const std::string& Server::getPassword() const
 {
     return _password;
+}
+
+std::map<int, Client>& Server::getClients()
+{
+    return _clients;
 }
 
 const std::map<int, Client>& Server::getClients() const
@@ -295,6 +311,15 @@ std::string Server::getIsupport(const std::string& key) const
 const std::string& Server::getCreationDate() const
 {
     return _creationDate;
+}
+
+// Bir handler baska bir istemciye mesaj gonderdiginde, hedef fd icin
+// POLLOUT'u hemen etkinlestirir. Boylece hedefin yeni bir komut yazmasini
+// beklemeden tamponlu cikis poll dongusu tarafindan bosaltilir.
+void Server::sendToClient(Client& client, const std::string& message)
+{
+    client.sendMessage(message);
+    updatePollEvents(client.getFd());
 }
 
 // Kayit tamamlandiginda (PASS+NICK+USER) hos geldin numeric'lerini gonderir.

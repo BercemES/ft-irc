@@ -36,10 +36,12 @@ public:
     // Kayit (registration) altyapisi — eski `server` sinifindan devralindi.
     // Command:: handler'lari bu erisimcileri kullanir.
     const std::string&              getPassword() const;
+    std::map<int, Client>&          getClients();
     const std::map<int, Client>&    getClients() const;
     std::string                     getIsupport(const std::string& key) const;
     const std::string&              getCreationDate() const;
     void                            checkReg(Client& client) const;
+    void                            sendToClient(Client& client, const std::string& message);
 
 private:
     Server();

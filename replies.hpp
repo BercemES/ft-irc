@@ -49,12 +49,12 @@ inline std::string	RPL_ENDOFMOTD(const std::string& client)
 
 inline std::string	ERR_NOSUCHNICK(const std::string& client, const std::string& nickname)
 {
-	return (":ircserv 401 " + client + nickname + " :No such nick/channel\r\n");
+	return (":ircserv 401 " + client + " " + nickname + " :No such nick/channel\r\n");
 }
 
 inline std::string	ERR_NOSUCHSERVER(const std::string& client, const std::string& serverName)
 {
-	return (":ircserv 402 " + client + serverName + " :No such server\r\n");
+	return (":ircserv 402 " + client + " " + serverName + " :No such server\r\n");
 }
 
 inline std::string	ERR_CANNOTSENDTOCHAN(const std::string& client, const std::string& channel)
@@ -64,7 +64,7 @@ inline std::string	ERR_CANNOTSENDTOCHAN(const std::string& client, const std::st
 
 inline std::string	ERR_NORECIPIENT(const std::string& client, const std::string& command)
 {
-	return (":ircserv 411 " + client + " :No recipient given" + command +"\r\n");
+	return (":ircserv 411 " + client + " :No recipient given (" + command + ")\r\n");
 }
 
 inline std::string	ERR_NOTEXTTOSEND(const std::string& client)
