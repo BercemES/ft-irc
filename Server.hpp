@@ -6,6 +6,8 @@
 # include <map>
 # include <poll.h>
 
+# include "client.hpp"
+
 class Server
 {
 private:
@@ -14,10 +16,9 @@ private:
     std::string                 _password;
     std::vector<struct pollfd>  _pollFds;
 
-    // Ağ mimarisi için bağımsız tamponlar (Aşama 1: Ağ Mimarisi)
-    std::map<int, std::string>  _inBuffers;       // İstemci başına gelen veri tamponu
-    std::map<int, std::string>  _outBuffers;      // İstemci başına giden veri tamponu
-    std::map<int, bool>         _closeAfterWrite; // Yazma bittiğinde kapatma bayrağı
+    // fd -> Client : her istemcinin oturumu, giris/cikis tamponu ve durumu
+    // artik Client nesnesinde yasar (Asama 2: Client entegrasyonu).
+    std::map<int, Client>       _clients;
 
 public:
     Server(const std::string& port, const std::string& password);
@@ -40,18 +41,14 @@ private:
     void updatePollEvents(int fd);
     void handlePollEvents(size_t& i, int& ready);
 
-    // Komut ayrıştırma ve Aşama 1 kapsamındaki özel komutlar
-    void extractAndHandleCommands(int fd);
-    void handleCommand(int fd, const std::string& line);
+    // Komut dagitimi (su an if-else; Adim 3'te komut tablosuna donusecek)
+    void handleCommand(Client& client, const IRCMessage& msg);
 
-    void handleCap(int fd, const std::vector<std::string>& tokens);
-    void handlePing(int fd, const std::string& line);
-    void handleQuit(int fd);
+    void handleCap(Client& client, const IRCMessage& msg);
+    void handlePing(Client& client, const IRCMessage& msg);
+    void handleQuit(Client& client);
 
-    // Ayrıştırma yardımcı fonksiyonları
-    std::vector<std::string> split(const std::string& line) const;
     std::string upper(const std::string& str) const;
-    std::string trimCr(const std::string& str) const;
 };
 
 #endif

@@ -121,11 +121,8 @@ void Server::addPollFd(int fd, short events)
     _pollFds.push_back(pfd);
 }
 
-/* TODO: İstemci (Client) modülü bağlantı kesilme entegrasyonu:
-   - Client oturumu, takma adı (nickname) ve kayıt bilgileri silinir.
-   - Client tüm kanallardan çıkarılır ve diğer kullanıcılara bildirim (QUIT/PART) gönderilir.
-   Örnek: clientManager.removeClient(fd);
-*/
+// NOT: ileride burada Client'in tum kanallardan cikarilmasi ve QUIT
+// bildiriminin yayilmasi da yapilacak (kanal entegrasyonu adiminda).
 void Server::removeClient(int fd)
 {
     std::cout << "Client disconnected fd=" << fd << std::endl;
@@ -138,15 +135,9 @@ void Server::removeClient(int fd)
             break;
         }
     }
-    _inBuffers.erase(fd);
-    _outBuffers.erase(fd);
-    _closeAfterWrite.erase(fd);
+    _clients.erase(fd);
 }
 
-/* TODO: Yeni bağlantı kabul edildiğinde İstemci (Client) modülü entegrasyonu:
-   Geliştirilen Client sınıfından yeni bir nesne üretilip sunucuya bağlanmalıdır.
-   Örnek: clientManager.addClient(fd, inet_ntoa(addr.sin_addr));
-*/
 void Server::acceptClients()
 {
     while (true)
@@ -161,20 +152,11 @@ void Server::acceptClients()
         }
         setNonBlocking(fd);
         addPollFd(fd, POLLIN);
-        _inBuffers[fd] = "";
-        _outBuffers[fd] = "";
-        _closeAfterWrite[fd] = false;
+        _clients.insert(std::make_pair(fd, Client(fd)));
         std::cout << "New client fd=" << fd << " ip=" << inet_ntoa(addr.sin_addr) << std::endl;
     }
 }
 
-/* TODO: İstemci (Client) modülü veri işleme entegrasyonu:
-   Gelen ham veri (buffer), ilgili istemcinin giriş kuyruğuna (inBuffer) eklenmelidir.
-   Örnek:
-   Client& client = clientManager.getClient(fd);
-   client.appendIn(std::string(buffer, bytes));
-   clientManager.processCommands(client);
-*/
 void Server::readFromClient(int fd)
 {
     char buffer[512];
@@ -182,8 +164,19 @@ void Server::readFromClient(int fd)
         std::memset(buffer, 0, sizeof(buffer));
         ssize_t bytes = recv(fd, buffer, sizeof(buffer), 0);
         if (bytes > 0) {
-            _inBuffers[fd].append(buffer, bytes);
-            extractAndHandleCommands(fd);
+            std::map<int, Client>::iterator it = _clients.find(fd);
+            if (it == _clients.end())
+                return;
+            it->second.appendToBuffer(std::string(buffer, bytes));
+            while (true) {
+                std::map<int, Client>::iterator cit = _clients.find(fd);
+                if (cit == _clients.end() || !cit->second.hasCommands())
+                    break;
+                IRCMessage msg = cit->second.getNextCommand();
+                handleCommand(cit->second, msg);
+            }
+            if (_clients.find(fd) == _clients.end())
+                return;
         } else if (bytes == 0) {
             removeClient(fd);
             return;
@@ -194,27 +187,27 @@ void Server::readFromClient(int fd)
             return;
         }
     }
+    if (_clients.find(fd) != _clients.end())
+        updatePollEvents(fd);
 }
 
-/* TODO: İstemci (Client) modülü yazma entegrasyonu:
-   Bu alanda istemci modülündeki çıkış kuyruğundan (outBuffer) veri alınıp gönderilecektir.
-   Örnek:
-   Client& client = clientManager.getClient(fd);
-   std::string& out = client.outBuffer();
-   // send(fd, out.c_str(), out.size(), 0) ...
-*/
 void Server::writeToClient(int fd)
 {
-    std::string& out = _outBuffers[fd];
-    if (out.empty()) {
+    std::map<int, Client>::iterator it = _clients.find(fd);
+    if (it == _clients.end())
+        return;
+    Client& client = it->second;
+    if (!client.hasOutput()) {
         updatePollEvents(fd);
-        if (_closeAfterWrite[fd]) removeClient(fd);
+        if (client.closeAfterWrite())
+            removeClient(fd);
         return;
     }
+    const std::string& out = client.outBuffer();
     ssize_t sent = send(fd, out.c_str(), out.size(), 0);
     if (sent > 0) {
-        out.erase(0, sent);
-        if (out.empty() && _closeAfterWrite[fd]) {
+        client.consumeOutput(static_cast<std::size_t>(sent));
+        if (!client.hasOutput() && client.closeAfterWrite()) {
             removeClient(fd);
             return;
         }
@@ -228,93 +221,62 @@ void Server::writeToClient(int fd)
 
 void Server::updatePollEvents(int fd)
 {
+    std::map<int, Client>::iterator cit = _clients.find(fd);
     for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
     {
         if (it->fd == fd)
         {
             it->events = POLLIN;
-            if (!_outBuffers[fd].empty())
+            if (cit != _clients.end() && cit->second.hasOutput())
                 it->events |= POLLOUT;
             break;
         }
     }
 }
 
-void Server::extractAndHandleCommands(int fd)
+/* TODO: Adim 3'te bu if-else, bercem'in komut tablosu (map<string, CmdFunc>)
+   ile degistirilecek; NICK/USER/JOIN vb. tabloya birer satir olarak eklenecek. */
+void Server::handleCommand(Client& client, const IRCMessage& msg)
 {
-    std::string& buf = _inBuffers[fd];
-    size_t pos;
-    while ((pos = buf.find('\n')) != std::string::npos)
-    {
-        std::string line = buf.substr(0, pos);
-        buf.erase(0, pos + 1);
-        line = trimCr(line);
-        if (!line.empty())
-            handleCommand(fd, line);
-        if (_inBuffers.find(fd) == _inBuffers.end())
-            return;
-    }
-}
-
-/* TODO: NICK, USER, JOIN, PRIVMSG vb. diğer komut modülleri
-   buraya entegre edilecektir.
-   Örnek: clientManager.handle(fd, tokens);
-*/
-void Server::handleCommand(int fd, const std::string& line)
-{
-    std::vector<std::string> tokens = split(line);
-    if (tokens.empty()) return;
-    std::string cmd = upper(tokens[0]);
-    std::cout << "fd=" << fd << " > " << line << std::endl;
+    std::string cmd = upper(msg.command);
+    std::cout << "fd=" << client.getFd() << " > " << msg.command << std::endl;
     if (cmd == "CAP")
-        handleCap(fd, tokens);
+        handleCap(client, msg);
     else if (cmd == "PING")
-        handlePing(fd, line);
+        handlePing(client, msg);
     else if (cmd == "QUIT")
-        handleQuit(fd);
+        handleQuit(client);
     else
-        std::cout << "Pass to other commands module: " << line << std::endl;
-    if (_inBuffers.find(fd) != _inBuffers.end())
-        updatePollEvents(fd);
+        std::cout << "Pass to other commands module: " << msg.command << std::endl;
 }
 
-void Server::handleCap(int fd, const std::vector<std::string>& tokens)
+void Server::handleCap(Client& client, const IRCMessage& msg)
 {
-    if (tokens.size() >= 2 && upper(tokens[1]) == "LS")
-        _outBuffers[fd].append(":ircserv CAP * LS :\r\n");
-    else if (tokens.size() >= 2 && upper(tokens[1]) == "END")
+    std::string sub;
+    if (!msg.params.empty())
+        sub = upper(msg.params[0]);
+    if (sub == "END")
         return;
-    else if (tokens.size() >= 2 && upper(tokens[1]) == "REQ")
-        _outBuffers[fd].append(":ircserv CAP * NAK :\r\n");
+    if (sub == "REQ")
+        client.sendMessage(":ircserv CAP * NAK :\r\n");
     else
-        _outBuffers[fd].append(":ircserv CAP * LS :\r\n");
+        client.sendMessage(":ircserv CAP * LS :\r\n");
 }
 
-void Server::handlePing(int fd, const std::string& line)
+void Server::handlePing(Client& client, const IRCMessage& msg)
 {
     std::string payload;
-    size_t pos = line.find(' ');
-    if (pos != std::string::npos)
-        payload = line.substr(pos + 1);
+    if (!msg.params.empty())
+        payload = msg.params[0];
     if (payload.empty())
-        payload = ":ircserv";
-    _outBuffers[fd].append("PONG " + payload + "\r\n");
+        payload = "ircserv";
+    client.sendMessage("PONG :" + payload + "\r\n");
 }
 
-void Server::handleQuit(int fd)
+void Server::handleQuit(Client& client)
 {
-    _outBuffers[fd].append("ERROR :Closing Link\r\n");
-    _closeAfterWrite[fd] = true;
-}
-
-std::vector<std::string> Server::split(const std::string& line) const
-{
-    std::vector<std::string> result;
-    std::istringstream iss(line);
-    std::string item;
-    while (iss >> item)
-        result.push_back(item);
-    return result;
+    client.sendMessage("ERROR :Closing Link\r\n");
+    client.setCloseAfterWrite(true);
 }
 
 std::string Server::upper(const std::string& str) const
@@ -323,11 +285,4 @@ std::string Server::upper(const std::string& str) const
     for (size_t i = 0; i < out.size(); ++i)
         out[i] = static_cast<char>(std::toupper(static_cast<unsigned char>(out[i])));
     return out;
-}
-
-std::string Server::trimCr(const std::string& str) const
-{
-    if (!str.empty() && str[str.size() - 1] == '\r')
-        return str.substr(0, str.size() - 1);
-    return str;
 }
