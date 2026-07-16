@@ -369,3 +369,14 @@ void Server::removeEmptyChannel(const std::string& name)
     if (it != _channels.end() && it->second.isEmpty())
         _channels.erase(it);
 }
+
+// Kanala yayin: Channel::broadcast mesaji uyelerin tamponina yazar; ardindan
+// her uyenin fd'si icin POLLOUT etkinlestirilir ki mesajlar hedefler kendi
+// olayini beklemeden aksin (sendToClient'in kanal karsiligi).
+void Server::broadcastToChannel(const Channel& channel, const std::string& message, Client* except)
+{
+    channel.broadcast(message, except);
+    const std::map<int, Client*>& members = channel.getMembers();
+    for (std::map<int, Client*>::const_iterator it = members.begin(); it != members.end(); ++it)
+        updatePollEvents(it->first);
+}

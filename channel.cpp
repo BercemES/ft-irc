@@ -18,6 +18,8 @@ void	Channel::addMember(Client* client)
 	if (client == NULL)
 		return ;
 	_members[client->getFd()] = client;
+	// Davet tek kullanimliktir: uye kanala girer girmez bekleyen davet tuketilir.
+	_invited.erase(client->getFd());
 }
 
 void	Channel::removeMember(Client* client)

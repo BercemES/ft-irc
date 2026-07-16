@@ -52,6 +52,8 @@ public:
     Channel*                        getChannel(const std::string& name);
     Channel&                        getOrCreateChannel(const std::string& name);
     void                            removeEmptyChannel(const std::string& name);
+    void                            broadcastToChannel(const Channel& channel,
+                                        const std::string& message, Client* except = NULL);
 
 private:
     Server();
