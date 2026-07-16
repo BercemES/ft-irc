@@ -3,6 +3,9 @@
 
 #include <sstream>
 
+using std::string;
+using std::map;
+
 Channel::Channel(const string& name)
 	: _name(name), _topicTime(0), _userLimit(0), _inviteOnly(false),
 	  _topicRestricted(false)
