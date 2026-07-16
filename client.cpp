@@ -1,7 +1,10 @@
 #include "client.hpp"
 
-Client::Client(int fd): 
-	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false), _isRegistered(false) {}
+using std::string;
+
+Client::Client(int fd):
+	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false),
+	_isRegistered(false), _closeAfterWrite(false) {}
 
 Client::~Client() {}
 
@@ -127,6 +130,11 @@ string	Client::getHost() const
 	return (this->_host);
 }
 
+void	Client::setHost(const string& host)
+{
+	this->_host = host;
+}
+
 int	Client::getFd() const
 {
 	return (this->_fd);
@@ -167,15 +175,36 @@ void	Client::setName(NameType type, const std::string& value)
 		this->_realname = value;
 }
 
-void	Client::sendMessage(const string& message) const
+// Ağ katmanı non-blocking: dogrudan send() yerine cikti Client'in kendi
+// out-buffer'ina yazilir; Server bunu POLLOUT geldiginde bosaltir.
+void	Client::sendMessage(const string& message)
 {
-	int send_flag;
-	
-	send_flag = send(this->getFd(), message.c_str(), message.length(), MSG_NOSIGNAL);
-	if (send_flag == -1)
-	{
-		//kullanıcı düştü. Bağlantıyı kapat fonksiyonu gelecek.!!!
-	}
+	this->_outBuffer += message;
+}
+
+bool	Client::hasOutput() const
+{
+	return (!this->_outBuffer.empty());
+}
+
+const string&	Client::outBuffer() const
+{
+	return (this->_outBuffer);
+}
+
+void	Client::consumeOutput(std::size_t n)
+{
+	this->_outBuffer.erase(0, n);
+}
+
+void	Client::setCloseAfterWrite(bool value)
+{
+	this->_closeAfterWrite = value;
+}
+
+bool	Client::closeAfterWrite() const
+{
+	return (this->_closeAfterWrite);
 }
 
 void	Client::setRegFlag(RegFlag flag, bool value)

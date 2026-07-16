@@ -9,11 +9,9 @@
 
 # define IRC_MAX_LINE 510
 
-using std::string;
-
 struct IRCMessage {
-	string prefix;
-	string command;
+	std::string prefix;
+	std::string command;
 	std::vector<std::string> params;
 };
 
@@ -33,40 +31,48 @@ enum RegFlag {
 class Client
 {
 	private:
-		int		_fd;
-		string	_buffer;
-		string	_nickname;
-		string	_username;
-		string	_realname;
-		bool	_passFlag;
-		bool	_nickFlag;
-		bool	_userFlag;
-		bool	_isRegistered;
-		string	_host;
-
+		int			_fd;
+		std::string	_buffer;
+		std::string	_nickname;
+		std::string	_username;
+		std::string	_realname;
+		bool		_passFlag;
+		bool		_nickFlag;
+		bool		_userFlag;
+		bool		_isRegistered;
+		std::string	_host;
+		std::string	_outBuffer;
+		bool		_closeAfterWrite;
 
 		std::vector<IRCMessage>     _commandsOrder;
 
-		IRCMessage		parseIRC(const std::string& line);
-		static string	nextParam(const std::string& line, size_t& pos);
+		IRCMessage			parseIRC(const std::string& line);
+		static std::string	nextParam(const std::string& line, size_t& pos);
 		
 	public:
 		Client(int fd);
 		~Client();
 
-		static string	ircToLower(string str);
-		void			appendToBuffer(const std::string& message);
-		bool			hasCommands() const;
-		IRCMessage		getNextCommand();
-		bool			isFullyRegistered() const;
-		void			sendMessage(const std::string& message) const;
+		static std::string	ircToLower(std::string str);
+		void				appendToBuffer(const std::string& message);
+		bool				hasCommands() const;
+		IRCMessage			getNextCommand();
+		bool				isFullyRegistered() const;
 
-		string			getHost() const;
-		int				getFd() const;
-		void			setName(NameType type, const std::string& value);
-		string			getName(NameType type) const;
-		void			setRegFlag(RegFlag flag, bool value);
-		bool			getRegFlag(RegFlag flag) const;
+		void				sendMessage(const std::string& message);
+		bool				hasOutput() const;
+		const std::string&	outBuffer() const;
+		void				consumeOutput(std::size_t n);
+		void				setCloseAfterWrite(bool value);
+		bool				closeAfterWrite() const;
+
+		std::string			getHost() const;
+		void				setHost(const std::string& host);
+		int					getFd() const;
+		void				setName(NameType type, const std::string& value);
+		std::string			getName(NameType type) const;
+		void				setRegFlag(RegFlag flag, bool value);
+		bool				getRegFlag(RegFlag flag) const;
 };
 
 
