@@ -278,3 +278,53 @@ void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
     chan->removeMember(target);
     server.removeEmptyChannel(msg.params[0]);
 }
+
+// INVITE <nick> <#kanal>
+// Denetim sirasi: 461 -> 403 -> 442 (davet eden uye degil) -> 482 (+i iken op
+// degil) -> 401 (hedef nick yok) -> 443 (hedef zaten uye). Davetler tek
+// kullanimlik: Channel::addMember JOIN sirasinda daveti tuketir.
+void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    Channel* chan = server.getChannel(msg.params[1]);
+    if (chan == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), msg.params[1]));
+        return;
+    }
+    if (!chan->isMember(&client))
+    {
+        client.sendMessage(ERR_NOTONCHANNEL(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+    if (chan->isInviteOnly() && !chan->isOperator(&client))
+    {
+        client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+
+    Client* target = server.getClientByNick(msg.params[0]);
+    if (target == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHNICK(client.getName(TYPE_NICK), msg.params[0]));
+        return;
+    }
+    if (chan->isMember(target))
+    {
+        client.sendMessage(ERR_USERONCHANNEL(client.getName(TYPE_NICK),
+            target->getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+
+    chan->invite(target);
+    client.sendMessage(RPL_INVITING(client.getName(TYPE_NICK),
+        target->getName(TYPE_NICK), chan->getName()));
+    server.sendToClient(*target, ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost()
+        + " INVITE " + target->getName(TYPE_NICK) + " " + chan->getName() + "\r\n");
+}

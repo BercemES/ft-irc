@@ -30,6 +30,7 @@ public:
     static void         handleTopic(Server& server, Client& client, const IRCMessage& msg);
     static void         handleMode(Server& server, Client& client, const IRCMessage& msg);
     static void         handleKick(Server& server, Client& client, const IRCMessage& msg);
+    static void         handleInvite(Server& server, Client& client, const IRCMessage& msg);
 
     static std::string  upper(const std::string& str);
 };
