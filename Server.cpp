@@ -130,10 +130,38 @@ void Server::addPollFd(int fd, short events)
     _pollFds.push_back(pfd);
 }
 
-// NOT: ileride burada Client'in tum kanallardan cikarilmasi ve QUIT
-// bildiriminin yayilmasi da yapilacak (kanal entegrasyonu adiminda).
+// Baglanti kapanirken istemci tum kanallardan cikarilir; kalan uyeler QUIT
+// bildirimi alir, bosalan kanal silinir. Bu temizlik Client nesnesi hala
+// hayattayken (erase'ten ONCE) yapilmali, yoksa kanallardaki Client*
+// gozlemcileri serbest birakilmis bellege isaret eder (dangling pointer).
+void Server::removeClientFromChannels(Client& client)
+{
+    std::string quitMsg = ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost()
+        + " QUIT :Client Quit\r\n";
+    std::map<std::string, Channel>::iterator it = _channels.begin();
+    while (it != _channels.end())
+    {
+        Channel& chan = it->second;
+        if (chan.isMember(&client))
+        {
+            chan.removeMember(&client);
+            if (chan.isEmpty())
+            {
+                _channels.erase(it++);
+                continue;
+            }
+            broadcastToChannel(chan, quitMsg);
+        }
+        ++it;
+    }
+}
+
 void Server::removeClient(int fd)
 {
+    std::map<int, Client>::iterator cit = _clients.find(fd);
+    if (cit != _clients.end())
+        removeClientFromChannels(cit->second);
     std::cout << "Client disconnected fd=" << fd << std::endl;
     close(fd);
     for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
@@ -255,6 +283,12 @@ void Server::initCommands()
     _commands["MOTD"] = &Command::handleMotd;
     _commands["PRIVMSG"] = &Command::handlePrivmsg;
     _commands["NOTICE"] = &Command::handleNotice;
+    _commands["JOIN"] = &Command::handleJoin;
+    _commands["PART"] = &Command::handlePart;
+    _commands["TOPIC"] = &Command::handleTopic;
+    _commands["MODE"] = &Command::handleMode;
+    _commands["KICK"] = &Command::handleKick;
+    _commands["INVITE"] = &Command::handleInvite;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
@@ -269,10 +303,12 @@ void Server::handleCommand(Client& client, const IRCMessage& msg)
         client.sendMessage(ERR_UNKNOWNCOMMAND(client.getName(TYPE_NICK), msg.command));
         return;
     }
-    // Kayit kapisi: kayitli olmayan istemci yalnizca kayit komutlarini
-    // kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
+    // Kayit kapisi: kayitli olmayan istemci yalnizca el sikisma/kayit
+    // komutlarini kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
+    // CAP/PING/QUIT muaf: istemciler CAP LS'i PASS'tan once gonderir.
     if (!client.isFullyRegistered()
-        && cmd != "PASS" && cmd != "NICK" && cmd != "USER")
+        && cmd != "PASS" && cmd != "NICK" && cmd != "USER"
+        && cmd != "CAP" && cmd != "PING" && cmd != "QUIT")
     {
         client.sendMessage(ERR_NOTREGISTERED(client.getName(TYPE_NICK)));
         return;
@@ -335,4 +371,60 @@ void Server::checkReg(Client& client) const
     client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
     client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), getCreationDate()));
     client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));
+}
+
+// Nick'ler case-insensitive eslestirilir. PRIVMSG/NOTICE ve MODE +o/-o,
+// KICK, INVITE gibi nick hedefli komutlarin ortak aramasi.
+Client* Server::getClientByNick(const std::string& nick)
+{
+    std::string lowered = Client::ircToLower(nick);
+    std::map<int, Client>::iterator it;
+
+    for (it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        if (Client::ircToLower(it->second.getName(TYPE_NICK)) == lowered)
+            return &it->second;
+    }
+    return NULL;
+}
+
+// Kanal adlari case-insensitive'dir: harita anahtari ircToLower ile normalize
+// edilir; kanalin gorunen adi ise ilk olusturanin yazdigi haliyle Channel
+// icinde saklanir.
+Channel* Server::getChannel(const std::string& name)
+{
+    std::map<std::string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
+    if (it == _channels.end())
+        return NULL;
+    return &it->second;
+}
+
+// Channel'in default constructor'u yok; bu yuzden operator[] derlenmez,
+// find + insert kullanilir.
+Channel& Server::getOrCreateChannel(const std::string& name)
+{
+    std::string key = Client::ircToLower(name);
+    std::map<std::string, Channel>::iterator it = _channels.find(key);
+    if (it == _channels.end())
+        it = _channels.insert(std::make_pair(key, Channel(name))).first;
+    return it->second;
+}
+
+// Son uye ayrildiginda kanali kaldirir (PART/QUIT/KICK sonrasinda cagrilir).
+void Server::removeEmptyChannel(const std::string& name)
+{
+    std::map<std::string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
+    if (it != _channels.end() && it->second.isEmpty())
+        _channels.erase(it);
+}
+
+// Kanala yayin: Channel::broadcast mesaji uyelerin tamponina yazar; ardindan
+// her uyenin fd'si icin POLLOUT etkinlestirilir ki mesajlar hedefler kendi
+// olayini beklemeden aksin (sendToClient'in kanal karsiligi).
+void Server::broadcastToChannel(const Channel& channel, const std::string& message, Client* except)
+{
+    channel.broadcast(message, except);
+    const std::map<int, Client*>& members = channel.getMembers();
+    for (std::map<int, Client*>::const_iterator it = members.begin(); it != members.end(); ++it)
+        updatePollEvents(it->first);
 }

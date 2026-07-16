@@ -3,6 +3,9 @@
 
 #include <sstream>
 
+using std::string;
+using std::map;
+
 Channel::Channel(const string& name)
 	: _name(name), _topicTime(0), _userLimit(0), _inviteOnly(false),
 	  _topicRestricted(false)
@@ -15,6 +18,8 @@ void	Channel::addMember(Client* client)
 	if (client == NULL)
 		return ;
 	_members[client->getFd()] = client;
+	// Davet tek kullanimliktir: uye kanala girer girmez bekleyen davet tuketilir.
+	_invited.erase(client->getFd());
 }
 
 void	Channel::removeMember(Client* client)

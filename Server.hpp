@@ -7,6 +7,7 @@
 # include <poll.h>
 
 # include "client.hpp"
+# include "channel.hpp"
 
 class Server
 {
@@ -19,6 +20,10 @@ private:
     // fd -> Client : her istemcinin oturumu, giris/cikis tamponu ve durumu
     // artik Client nesnesinde yasar (Asama 2: Client entegrasyonu).
     std::map<int, Client>       _clients;
+
+    // kucuk-harf normalize edilmis kanal adi -> Channel. Kanallarin sahibi
+    // Server'dir; Channel icindeki Client* gozlemcileri _clients'a bakar.
+    std::map<std::string, Channel>  _channels;
 
     // Komut adi -> handler. if-else yerine fonksiyon-pointer tablosu.
     typedef void (*CmdFunc)(Server&, Client&, const IRCMessage&);
@@ -42,6 +47,14 @@ public:
     const std::string&              getCreationDate() const;
     void                            checkReg(Client& client) const;
     void                            sendToClient(Client& client, const std::string& message);
+    Client*                         getClientByNick(const std::string& nick);  // yoksa NULL
+
+    // Kanal kaydi (registry): adlar case-insensitive eslestirilir.
+    Channel*                        getChannel(const std::string& name);
+    Channel&                        getOrCreateChannel(const std::string& name);
+    void                            removeEmptyChannel(const std::string& name);
+    void                            broadcastToChannel(const Channel& channel,
+                                        const std::string& message, Client* except = NULL);
 
 private:
     Server();
@@ -52,6 +65,7 @@ private:
     void setNonBlocking(int fd);
     void addPollFd(int fd, short events);
     void removeClient(int fd);
+    void removeClientFromChannels(Client& client);
     void acceptClients();
     void readFromClient(int fd);
     void writeToClient(int fd);

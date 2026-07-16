@@ -24,23 +24,33 @@ namespace
         return targets;
     }
 
-    Client* findClientByNick(Server& server, const std::string& nickname)
+    void sendToChannel(Server& server, Client& sender, const std::string& target,
+        const std::string& text, bool isNotice)
     {
-        std::map<int, Client>& clients = server.getClients();
-        std::map<int, Client>::iterator it;
-
-        for (it = clients.begin(); it != clients.end(); ++it)
+        Channel* channel = server.getChannel(target);
+        if (channel == NULL)
         {
-            if (Client::ircToLower(it->second.getName(TYPE_NICK)) == nickname)
-                return &it->second;
+            if (!isNotice)
+                sender.sendMessage(ERR_NOSUCHCHANNEL(sender.getName(TYPE_NICK), target));
+            return;
         }
-        return NULL;
+        if (!channel->isMember(&sender))
+        {
+            if (!isNotice)
+                sender.sendMessage(ERR_CANNOTSENDTOCHAN(sender.getName(TYPE_NICK),
+                    channel->getName()));
+            return;
+        }
+        server.broadcastToChannel(*channel, ":" + sender.getName(TYPE_NICK) + "!"
+            + sender.getName(TYPE_USER) + "@" + sender.getHost()
+            + (isNotice ? " NOTICE " : " PRIVMSG ") + channel->getName()
+            + " :" + text + "\r\n", &sender);
     }
 
     void sendToUser(Server& server, Client& sender, const std::string& target,
         const std::string& text, bool isNotice)
     {
-        Client* recipient = findClientByNick(server, target);
+        Client* recipient = server.getClientByNick(target);
         if (recipient == NULL)
         {
             if (!isNotice)
@@ -79,12 +89,7 @@ namespace
             it != targets.end(); ++it)
         {
             if ((*it)[0] == '#' || (*it)[0] == '&')
-            {
-                // Kanal kaydi henuz Server'a tasinmadi. JOIN entegrasyonuna
-                // kadar kanal hedefleri mevcut degilmis gibi davranir.
-                if (!isNotice)
-                    client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), *it));
-            }
+                sendToChannel(server, client, *it, msg.params[1], isNotice);
             else
                 sendToUser(server, client, *it, msg.params[1], isNotice);
         }

@@ -59,7 +59,7 @@ inline std::string	ERR_NOSUCHSERVER(const std::string& client, const std::string
 
 inline std::string	ERR_CANNOTSENDTOCHAN(const std::string& client, const std::string& channel)
 {
-	return (":ircserv 404 " + client + channel + " :Cannot send to channel\r\n");
+	return (":ircserv 404 " + client + " " + channel + " :Cannot send to channel\r\n");
 }
 
 inline std::string	ERR_NORECIPIENT(const std::string& client, const std::string& command)
@@ -122,6 +122,11 @@ inline std::string	ERR_NICKNAMEINUSE(const std::string& client, const std::strin
 
 //channel
 
+inline std::string	RPL_CHANNELMODEIS(const std::string& nick, const std::string& channel, const std::string& modestring)
+{
+	return (":ircserv 324 " + nick + " " + channel + " " + modestring + "\r\n");
+}
+
 inline std::string	RPL_NOTOPIC(const std::string& nick, const std::string& channel)
 {
 	return (":ircserv 331 " + nick + " " + channel + " :No topic is set\r\n");
@@ -135,6 +140,11 @@ inline std::string	RPL_TOPIC(const std::string& nick, const std::string& channel
 inline std::string	RPL_TOPICWHOTIME(const std::string& nick, const std::string& channel, const std::string& setter, const std::string& setat)
 {
 	return (":ircserv 333 " + nick + " " + channel + " " + setter + " " + setat + "\r\n");
+}
+
+inline std::string	RPL_INVITING(const std::string& nick, const std::string& targetNick, const std::string& channel)
+{
+	return (":ircserv 341 " + nick + " " + targetNick + " " + channel + "\r\n");
 }
 
 inline std::string	RPL_NAMREPLY(const std::string& nick, const std::string& channel, const std::string& names)
@@ -152,9 +162,29 @@ inline std::string	ERR_NOSUCHCHANNEL(const std::string& client, const std::strin
 	return (":ircserv 403 " + client + " " + channel + " :No such channel\r\n");
 }
 
+inline std::string	ERR_USERNOTINCHANNEL(const std::string& client, const std::string& nick, const std::string& channel)
+{
+	return (":ircserv 441 " + client + " " + nick + " " + channel + " :They aren't on that channel\r\n");
+}
+
+inline std::string	ERR_NOTONCHANNEL(const std::string& client, const std::string& channel)
+{
+	return (":ircserv 442 " + client + " " + channel + " :You're not on that channel\r\n");
+}
+
+inline std::string	ERR_USERONCHANNEL(const std::string& client, const std::string& nick, const std::string& channel)
+{
+	return (":ircserv 443 " + client + " " + nick + " " + channel + " :is already on channel\r\n");
+}
+
 inline std::string	ERR_CHANNELISFULL(const std::string& client, const std::string& channel)
 {
 	return (":ircserv 471 " + client + " " + channel + " :Cannot join channel (+l)\r\n");
+}
+
+inline std::string	ERR_UNKNOWNMODE(const std::string& client, char modeChar)
+{
+	return (":ircserv 472 " + client + " " + modeChar + " :is unknown mode char to me\r\n");
 }
 
 inline std::string	ERR_INVITEONLYCHAN(const std::string& client, const std::string& channel)
@@ -170,6 +200,11 @@ inline std::string	ERR_BADCHANNELKEY(const std::string& client, const std::strin
 inline std::string	ERR_BADCHANMASK(const std::string& client, const std::string& channel)
 {
 	return (":ircserv 476 " + client + " " + channel + " :Bad Channel Mask\r\n");
+}
+
+inline std::string	ERR_CHANOPRIVSNEEDED(const std::string& client, const std::string& channel)
+{
+	return (":ircserv 482 " + client + " " + channel + " :You're not channel operator\r\n");
 }
 
 #endif
