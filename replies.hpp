@@ -59,7 +59,7 @@ inline std::string	ERR_NOSUCHSERVER(const std::string& client, const std::string
 
 inline std::string	ERR_CANNOTSENDTOCHAN(const std::string& client, const std::string& channel)
 {
-	return (":ircserv 404 " + client + channel + " :Cannot send to channel\r\n");
+	return (":ircserv 404 " + client + " " + channel + " :Cannot send to channel\r\n");
 }
 
 inline std::string	ERR_NORECIPIENT(const std::string& client, const std::string& command)
