@@ -179,3 +179,53 @@ void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
         partOne(server, client, names[i], reason);
     }
 }
+
+// TOPIC <#kanal> [:<konu>]
+// Ikinci parametre yoksa sorgu (331 veya 332+333); varsa degistirme. Bos konu
+// metni konuyu siler (hasTopic bos metinde false doner).
+void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.empty() || msg.params[0].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    Channel* chan = server.getChannel(msg.params[0]);
+    if (chan == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), msg.params[0]));
+        return;
+    }
+    if (!chan->isMember(&client))
+    {
+        client.sendMessage(ERR_NOTONCHANNEL(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+
+    if (msg.params.size() < 2)  // sorgu
+    {
+        if (!chan->hasTopic())
+        {
+            client.sendMessage(RPL_NOTOPIC(client.getName(TYPE_NICK), chan->getName()));
+            return;
+        }
+        std::ostringstream when;
+        when << chan->getTopicTime();
+        client.sendMessage(RPL_TOPIC(client.getName(TYPE_NICK), chan->getName(), chan->getTopic()));
+        client.sendMessage(RPL_TOPICWHOTIME(client.getName(TYPE_NICK), chan->getName(),
+            chan->getTopicSetter(), when.str()));
+        return;
+    }
+
+    // degistirme: +t iken operator olmayan uye reddedilir
+    if (chan->isTopicRestricted() && !chan->isOperator(&client))
+    {
+        client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+    chan->setTopic(msg.params[1], client.getName(TYPE_NICK));
+    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost()
+        + " TOPIC " + chan->getName() + " :" + msg.params[1] + "\r\n");
+}

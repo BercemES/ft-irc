@@ -285,6 +285,7 @@ void Server::initCommands()
     _commands["NOTICE"] = &Command::handleNotice;
     _commands["JOIN"] = &Command::handleJoin;
     _commands["PART"] = &Command::handlePart;
+    _commands["TOPIC"] = &Command::handleTopic;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
