@@ -229,3 +229,52 @@ void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
         + client.getName(TYPE_USER) + "@" + client.getHost()
         + " TOPIC " + chan->getName() + " :" + msg.params[1] + "\r\n");
 }
+
+// KICK <#kanal> <nick> [:<sebep>]
+// Denetim sirasi: 461 -> 403 -> 442 (kickleyen uye degil) -> 482 (op degil)
+// -> 441 (hedef kanalda degil; bilinmeyen nick de bu yola duser).
+void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    Channel* chan = server.getChannel(msg.params[0]);
+    if (chan == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), msg.params[0]));
+        return;
+    }
+    if (!chan->isMember(&client))
+    {
+        client.sendMessage(ERR_NOTONCHANNEL(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+    if (!chan->isOperator(&client))
+    {
+        client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+
+    Client* target = server.getClientByNick(msg.params[1]);
+    if (target == NULL || !chan->isMember(target))
+    {
+        client.sendMessage(ERR_USERNOTINCHANNEL(client.getName(TYPE_NICK),
+            msg.params[1], chan->getName()));
+        return;
+    }
+
+    string reason = (msg.params.size() >= 3 && !msg.params[2].empty())
+        ? msg.params[2] : client.getName(TYPE_NICK);
+
+    // Yayin uyelik silinmeden YAPILIR ki atilan da KICK'i gorsun.
+    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost()
+        + " KICK " + chan->getName() + " " + target->getName(TYPE_NICK)
+        + " :" + reason + "\r\n");
+
+    chan->removeMember(target);
+    server.removeEmptyChannel(msg.params[0]);
+}

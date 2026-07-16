@@ -287,6 +287,7 @@ void Server::initCommands()
     _commands["PART"] = &Command::handlePart;
     _commands["TOPIC"] = &Command::handleTopic;
     _commands["MODE"] = &Command::handleMode;
+    _commands["KICK"] = &Command::handleKick;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
