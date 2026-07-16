@@ -111,6 +111,32 @@ static void joinOne(Server& server, Client& client, const string& name, const st
     client.sendMessage(RPL_ENDOFNAMES(client.getName(TYPE_NICK), chan->getName()));
 }
 
+// Tek bir kanaldan ayrilma akisi: dogrulama, PART yayini (ayrilan da onay
+// olarak alir), uyelik silme ve bosalan kanalin kaldirilmasi.
+static void partOne(Server& server, Client& client, const string& name, const string& reason)
+{
+    Channel* chan = server.getChannel(name);
+    if (chan == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), name));
+        return;
+    }
+    if (!chan->isMember(&client))
+    {
+        client.sendMessage(ERR_NOTONCHANNEL(client.getName(TYPE_NICK), chan->getName()));
+        return;
+    }
+
+    // Yayin uyelik silinmeden YAPILIR ki ayrilan da onayini alsin.
+    string prefix = ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost();
+    server.broadcastToChannel(*chan, prefix + " PART " + chan->getName()
+        + (reason.empty() ? "" : " :" + reason) + "\r\n");
+
+    chan->removeMember(&client);
+    server.removeEmptyChannel(name);
+}
+
 // JOIN <#kanal>{,<#kanal>} [<anahtar>{,<anahtar>}]
 // Anahtarlar kanallarla konumsal eslesir; eksik kalanlar bos sayilir.
 void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
@@ -131,5 +157,25 @@ void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
         if (names[i].empty())
             continue;
         joinOne(server, client, names[i], i < keys.size() ? keys[i] : string());
+    }
+}
+
+// PART <#kanal>{,<#kanal>} [:<sebep>]
+void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.empty() || msg.params[0].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    std::vector<string> names = splitList(msg.params[0]);
+    string reason = msg.params.size() >= 2 ? msg.params[1] : string();
+
+    for (size_t i = 0; i < names.size(); ++i)
+    {
+        if (names[i].empty())
+            continue;
+        partOne(server, client, names[i], reason);
     }
 }
