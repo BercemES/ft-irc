@@ -269,10 +269,12 @@ void Server::handleCommand(Client& client, const IRCMessage& msg)
         client.sendMessage(ERR_UNKNOWNCOMMAND(client.getName(TYPE_NICK), msg.command));
         return;
     }
-    // Kayit kapisi: kayitli olmayan istemci yalnizca kayit komutlarini
-    // kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
+    // Kayit kapisi: kayitli olmayan istemci yalnizca el sikisma/kayit
+    // komutlarini kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
+    // CAP/PING/QUIT muaf: istemciler CAP LS'i PASS'tan once gonderir.
     if (!client.isFullyRegistered()
-        && cmd != "PASS" && cmd != "NICK" && cmd != "USER")
+        && cmd != "PASS" && cmd != "NICK" && cmd != "USER"
+        && cmd != "CAP" && cmd != "PING" && cmd != "QUIT")
     {
         client.sendMessage(ERR_NOTREGISTERED(client.getName(TYPE_NICK)));
         return;
