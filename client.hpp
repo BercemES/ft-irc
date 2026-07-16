@@ -8,6 +8,7 @@
 # include "replies.hpp"
 
 # define IRC_MAX_LINE 510
+# define IRC_MAX_BUFFER 4096
 
 struct IRCMessage {
 	std::string prefix;

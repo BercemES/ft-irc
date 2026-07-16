@@ -2,6 +2,7 @@
 # define COMMAND_HPP
 
 # include <string>
+# include <fstream>
 
 # include "client.hpp"   // Client, IRCMessage
 

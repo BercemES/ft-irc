@@ -7,22 +7,22 @@
 
 namespace
 {
-    std::vector<std::string> splitTargets(const std::string& targetList)
-    {
-        std::vector<std::string> targets;
-        std::stringstream stream(targetList);
-        std::string target;
+	std::vector<std::string> splitTargets(const std::string& targetList)
+	{
+		std::vector<std::string> targets;
+		std::stringstream stream(targetList);
+		std::string target;
 
-        while (std::getline(stream, target, ','))
-        {
-            if (target.empty())
-                continue;
-            target = Client::ircToLower(target);
-            if (std::find(targets.begin(), targets.end(), target) == targets.end())
-                targets.push_back(target);
-        }
-        return targets;
-    }
+		while (std::getline(stream, target, ','))
+		{
+			if (target.empty())
+				continue;
+			target = Client::ircToLower(target);
+			if (std::find(targets.begin(), targets.end(), target) == targets.end())
+				targets.push_back(target);
+		}
+		return targets;
+	}
 
     void sendToChannel(Server& server, Client& sender, const std::string& target,
         const std::string& text, bool isNotice)
@@ -59,24 +59,24 @@ namespace
         }
         server.sendToClient(*recipient, ":" + sender.getName(TYPE_NICK) + "!"
             + sender.getName(TYPE_USER) + "@" + sender.getHost()
-            + (isNotice ? " NOTICE " : " PRIVMSG ") + target + " :" + text + "\r\n");
+            + (isNotice ? " NOTICE " : " PRIVMSG ") +  recipient->getName(TYPE_NICK) + " :" + text + "\r\n");
     }
 
-    void handleMessage(Server& server, Client& client, const IRCMessage& msg,
-        bool isNotice)
-    {
-        if (msg.params.empty() || msg.params[0].empty())
-        {
-            if (!isNotice)
-                client.sendMessage(ERR_NORECIPIENT(client.getName(TYPE_NICK), msg.command));
-            return;
-        }
-        if (msg.params.size() < 2 || msg.params[1].empty())
-        {
-            if (!isNotice)
-                client.sendMessage(ERR_NOTEXTTOSEND(client.getName(TYPE_NICK)));
-            return;
-        }
+	void handleMessage(Server& server, Client& client, const IRCMessage& msg,
+		bool isNotice)
+	{
+		if (msg.params.empty() || msg.params[0].empty())
+		{
+			if (!isNotice)
+				client.sendMessage(ERR_NORECIPIENT(client.getName(TYPE_NICK), msg.command));
+			return;
+		}
+		if (msg.params.size() < 2 || msg.params[1].empty())
+		{
+			if (!isNotice)
+				client.sendMessage(ERR_NOTEXTTOSEND(client.getName(TYPE_NICK)));
+			return;
+		}
 
         std::vector<std::string> targets = splitTargets(msg.params[0]);
         if (targets.empty())
@@ -98,23 +98,31 @@ namespace
 
 void Command::handleMotd(Server&, Client& client, const IRCMessage& msg)
 {
-    if (!msg.params.empty() && msg.params[0] != "ircserv")
-    {
-        client.sendMessage(ERR_NOSUCHSERVER(client.getName(TYPE_NICK), msg.params[0]));
-        return;
-    }
-    client.sendMessage(RPL_MOTDSTART(client.getName(TYPE_NICK)));
-    client.sendMessage(RPL_MOTD(client.getName(TYPE_NICK), "Welcome to ft_irc"));
-    client.sendMessage(RPL_MOTD(client.getName(TYPE_NICK), "Enjoy your stay."));
-    client.sendMessage(RPL_ENDOFMOTD(client.getName(TYPE_NICK)));
+	if (!msg.params.empty() && msg.params[0] != "ircserv")
+	{
+		client.sendMessage(ERR_NOSUCHSERVER(client.getName(TYPE_NICK), msg.params[0]));
+		return;
+	}
+	std::ifstream file("motd.txt");
+	if (!file.is_open())
+	{
+		client.sendMessage(ERR_NOMOTD(client.getName(TYPE_NICK)));
+		return;
+	}
+	client.sendMessage(RPL_MOTDSTART(client.getName(TYPE_NICK)));
+	std::string  text;
+	while (getline(file, text))
+		client.sendMessage(RPL_MOTD(client.getName(TYPE_NICK), text));
+	client.sendMessage(RPL_ENDOFMOTD(client.getName(TYPE_NICK)));
+	file.close();
 }
 
 void Command::handlePrivmsg(Server& server, Client& client, const IRCMessage& msg)
 {
-    handleMessage(server, client, msg, false);
+	handleMessage(server, client, msg, false);
 }
 
 void Command::handleNotice(Server& server, Client& client, const IRCMessage& msg)
 {
-    handleMessage(server, client, msg, true);
+	handleMessage(server, client, msg, true);
 }

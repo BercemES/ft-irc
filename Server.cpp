@@ -319,6 +319,7 @@ void Server::handleCommand(Client& client, const IRCMessage& msg)
 void Server::initIsupport()
 {
     _isupport["USERLEN"] = "15";
+    _isupport["NICKLEN"] = "30";
 }
 
 const std::string& Server::getPassword() const

@@ -72,6 +72,12 @@ void	Client::appendToBuffer(const string& message)
 	struct	IRCMessage	msg;
 
 	this->_buffer += message;
+	if (_buffer.size() > IRC_MAX_BUFFER)
+	{
+		this->sendMessage(ERR_INPUTTOOLONG(this->getName(TYPE_NICK)));
+		setCloseAfterWrite(true);
+		return;
+	}
 	pos = _buffer.find("\r\n");
 	while (pos != std::string::npos)
 	{

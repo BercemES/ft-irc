@@ -82,6 +82,11 @@ inline std::string	ERR_UNKNOWNCOMMAND(const std::string& client, const std::stri
     return (":ircserv 421 " + client + " " + command + " :Unknown command\r\n");
 }
 
+inline std::string	ERR_NOMOTD(const std::string& client)
+{
+    return (":ircserv 422 " + client + " :MOTD File is missing\r\n");
+}
+
 inline std::string	ERR_NOTREGISTERED(const std::string& client)
 {
     return (":ircserv 451 " + client + " :You have not registered\r\n");
