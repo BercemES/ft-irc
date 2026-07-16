@@ -2,6 +2,7 @@
 #include "Server.hpp"
 
 #include <sstream>
+#include <vector>
 
 using std::string;
 
@@ -19,6 +20,19 @@ static bool isValidChannelName(const string& name)
             return false;
     }
     return true;
+}
+
+// Virgulle ayrilmis listeyi parcalarina ayirir. Bos parcalar KORUNUR: anahtar
+// listesinde ",k2" gibi bos yuvalar konumsal olarak anlamlidir.
+static std::vector<string> splitList(const string& list)
+{
+    std::vector<string> out;
+    std::stringstream ss(list);
+    string item;
+
+    while (std::getline(ss, item, ','))
+        out.push_back(item);
+    return out;
 }
 
 // RPL_NAMREPLY (353) icin uye listesini uretir; operatorler '@' on ekiyle.
@@ -41,26 +55,16 @@ static string buildNames(const Channel& channel)
     return names;
 }
 
-void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
+// Tek bir kanala katilma akisi: dogrulama, giris denetimleri (+i/+k/+l),
+// uyelik + ilk uyeye operatorluk, JOIN yayini ve topic/NAMES cevaplari.
+static void joinOne(Server& server, Client& client, const string& name, const string& key)
 {
-    if (msg.params.empty() || msg.params[0].empty())
-    {
-        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
-        return;
-    }
-    const string& name = msg.params[0];
     if (!isValidChannelName(name))
     {
         client.sendMessage(ERR_BADCHANMASK(client.getName(TYPE_NICK), name));
         return;
     }
 
-    string key;
-    if (msg.params.size() >= 2)
-        key = msg.params[1];
-
-    // Kanal varsa giris denetimleri (+i/+k/+l) uygulanir; yoksa olusturulur
-    // ve kanali acan ilk uye operator olur.
     Channel* chan = server.getChannel(name);
     bool created = (chan == NULL);
     if (chan != NULL)
@@ -105,6 +109,27 @@ void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
     }
     client.sendMessage(RPL_NAMREPLY(client.getName(TYPE_NICK), chan->getName(), buildNames(*chan)));
     client.sendMessage(RPL_ENDOFNAMES(client.getName(TYPE_NICK), chan->getName()));
+}
 
-    // TODO: virgulle ayrilmis coklu kanal + anahtar listesi (son adim).
+// JOIN <#kanal>{,<#kanal>} [<anahtar>{,<anahtar>}]
+// Anahtarlar kanallarla konumsal eslesir; eksik kalanlar bos sayilir.
+void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.empty() || msg.params[0].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    std::vector<string> names = splitList(msg.params[0]);
+    std::vector<string> keys;
+    if (msg.params.size() >= 2)
+        keys = splitList(msg.params[1]);
+
+    for (size_t i = 0; i < names.size(); ++i)
+    {
+        if (names[i].empty())
+            continue;
+        joinOne(server, client, names[i], i < keys.size() ? keys[i] : string());
+    }
 }
