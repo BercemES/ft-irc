@@ -24,19 +24,6 @@ namespace
         return targets;
     }
 
-    Client* findClientByNick(Server& server, const std::string& nickname)
-    {
-        std::map<int, Client>& clients = server.getClients();
-        std::map<int, Client>::iterator it;
-
-        for (it = clients.begin(); it != clients.end(); ++it)
-        {
-            if (Client::ircToLower(it->second.getName(TYPE_NICK)) == nickname)
-                return &it->second;
-        }
-        return NULL;
-    }
-
     void sendToChannel(Server& server, Client& sender, const std::string& target,
         const std::string& text, bool isNotice)
     {
@@ -63,7 +50,7 @@ namespace
     void sendToUser(Server& server, Client& sender, const std::string& target,
         const std::string& text, bool isNotice)
     {
-        Client* recipient = findClientByNick(server, target);
+        Client* recipient = server.getClientByNick(target);
         if (recipient == NULL)
         {
             if (!isNotice)

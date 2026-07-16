@@ -47,6 +47,7 @@ public:
     const std::string&              getCreationDate() const;
     void                            checkReg(Client& client) const;
     void                            sendToClient(Client& client, const std::string& message);
+    Client*                         getClientByNick(const std::string& nick);  // yoksa NULL
 
     // Kanal kaydi (registry): adlar case-insensitive eslestirilir.
     Channel*                        getChannel(const std::string& name);

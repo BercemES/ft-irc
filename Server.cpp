@@ -286,6 +286,7 @@ void Server::initCommands()
     _commands["JOIN"] = &Command::handleJoin;
     _commands["PART"] = &Command::handlePart;
     _commands["TOPIC"] = &Command::handleTopic;
+    _commands["MODE"] = &Command::handleMode;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
@@ -368,6 +369,21 @@ void Server::checkReg(Client& client) const
     client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
     client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), getCreationDate()));
     client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));
+}
+
+// Nick'ler case-insensitive eslestirilir. PRIVMSG/NOTICE ve MODE +o/-o,
+// KICK, INVITE gibi nick hedefli komutlarin ortak aramasi.
+Client* Server::getClientByNick(const std::string& nick)
+{
+    std::string lowered = Client::ircToLower(nick);
+    std::map<int, Client>::iterator it;
+
+    for (it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        if (Client::ircToLower(it->second.getName(TYPE_NICK)) == lowered)
+            return &it->second;
+    }
+    return NULL;
 }
 
 // Kanal adlari case-insensitive'dir: harita anahtari ircToLower ile normalize
