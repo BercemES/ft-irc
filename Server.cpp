@@ -338,3 +338,33 @@ void Server::checkReg(Client& client) const
     client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), getCreationDate()));
     client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "ircserv 1.0", "i", "t,k,l"));
 }
+
+// Kanal adlari case-insensitive'dir: harita anahtari ircToLower ile normalize
+// edilir; kanalin gorunen adi ise ilk olusturanin yazdigi haliyle Channel
+// icinde saklanir.
+Channel* Server::getChannel(const std::string& name)
+{
+    std::map<std::string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
+    if (it == _channels.end())
+        return NULL;
+    return &it->second;
+}
+
+// Channel'in default constructor'u yok; bu yuzden operator[] derlenmez,
+// find + insert kullanilir.
+Channel& Server::getOrCreateChannel(const std::string& name)
+{
+    std::string key = Client::ircToLower(name);
+    std::map<std::string, Channel>::iterator it = _channels.find(key);
+    if (it == _channels.end())
+        it = _channels.insert(std::make_pair(key, Channel(name))).first;
+    return it->second;
+}
+
+// Son uye ayrildiginda kanali kaldirir (PART/QUIT/KICK sonrasinda cagrilir).
+void Server::removeEmptyChannel(const std::string& name)
+{
+    std::map<std::string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
+    if (it != _channels.end() && it->second.isEmpty())
+        _channels.erase(it);
+}
