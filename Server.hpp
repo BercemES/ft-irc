@@ -64,6 +64,7 @@ private:
     void setNonBlocking(int fd);
     void addPollFd(int fd, short events);
     void removeClient(int fd);
+    void removeClientFromChannels(Client& client);
     void acceptClients();
     void readFromClient(int fd);
     void writeToClient(int fd);

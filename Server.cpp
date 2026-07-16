@@ -130,10 +130,38 @@ void Server::addPollFd(int fd, short events)
     _pollFds.push_back(pfd);
 }
 
-// NOT: ileride burada Client'in tum kanallardan cikarilmasi ve QUIT
-// bildiriminin yayilmasi da yapilacak (kanal entegrasyonu adiminda).
+// Baglanti kapanirken istemci tum kanallardan cikarilir; kalan uyeler QUIT
+// bildirimi alir, bosalan kanal silinir. Bu temizlik Client nesnesi hala
+// hayattayken (erase'ten ONCE) yapilmali, yoksa kanallardaki Client*
+// gozlemcileri serbest birakilmis bellege isaret eder (dangling pointer).
+void Server::removeClientFromChannels(Client& client)
+{
+    std::string quitMsg = ":" + client.getName(TYPE_NICK) + "!"
+        + client.getName(TYPE_USER) + "@" + client.getHost()
+        + " QUIT :Client Quit\r\n";
+    std::map<std::string, Channel>::iterator it = _channels.begin();
+    while (it != _channels.end())
+    {
+        Channel& chan = it->second;
+        if (chan.isMember(&client))
+        {
+            chan.removeMember(&client);
+            if (chan.isEmpty())
+            {
+                _channels.erase(it++);
+                continue;
+            }
+            broadcastToChannel(chan, quitMsg);
+        }
+        ++it;
+    }
+}
+
 void Server::removeClient(int fd)
 {
+    std::map<int, Client>::iterator cit = _clients.find(fd);
+    if (cit != _clients.end())
+        removeClientFromChannels(cit->second);
     std::cout << "Client disconnected fd=" << fd << std::endl;
     close(fd);
     for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
