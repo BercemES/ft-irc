@@ -255,6 +255,7 @@ void Server::initCommands()
     _commands["MOTD"] = &Command::handleMotd;
     _commands["PRIVMSG"] = &Command::handlePrivmsg;
     _commands["NOTICE"] = &Command::handleNotice;
+    _commands["JOIN"] = &Command::handleJoin;
 }
 
 /* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa

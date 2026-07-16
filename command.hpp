@@ -25,6 +25,8 @@ public:
     static void         handlePrivmsg(Server& server, Client& client, const IRCMessage& msg);
     static void         handleNotice(Server& server, Client& client, const IRCMessage& msg);
 
+    static void         handleJoin(Server& server, Client& client, const IRCMessage& msg);
+
     static std::string  upper(const std::string& str);
 };
 
