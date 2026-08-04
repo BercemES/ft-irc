@@ -4,7 +4,7 @@ using std::string;
 
 Client::Client(int fd):
 	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false),
-	_isRegistered(false), _closeAfterWrite(false) {}
+	_isRegistered(false), _closeAfterWrite(false), _outputOverflow(false) {}
 
 Client::~Client() {}
 
@@ -71,6 +71,8 @@ void	Client::appendToBuffer(const string& message)
 	size_t				pos;
 	struct	IRCMessage	msg;
 
+	if (this->_closeAfterWrite)
+		return ;
 	this->_buffer += message;
 	pos = _buffer.find("\r\n");
 	while (pos != std::string::npos)
@@ -86,6 +88,14 @@ void	Client::appendToBuffer(const string& message)
 				this->_commandsOrder.push_back(msg);
 		}
 		pos = _buffer.find("\r\n");
+	}
+	if (_buffer.size() > IRC_MAX_LINE)
+	{
+		// CRLF gelmeden biriken parca izin verilen satir uzunlugunu asti:
+		// sinirsiz buyumeyi onlemek icin baglanti guvenli sekilde kapatilir.
+		this->sendMessage(ERR_INPUTTOOLONG(this->getName(TYPE_NICK)));
+		this->_buffer.clear();
+		this->setCloseAfterWrite(true);
 	}
 }
 
@@ -179,6 +189,16 @@ void	Client::setName(NameType type, const std::string& value)
 // out-buffer'ina yazilir; Server bunu POLLOUT geldiginde bosaltir.
 void	Client::sendMessage(const string& message)
 {
+	if (this->_outputOverflow)
+		return ;
+	if (this->_outBuffer.size() + message.size() > MAX_PENDING_OUTPUT_BYTES)
+	{
+		// Yavas/okumayan alici: cikti kuyrugu bellek korumasi icin sinirlidir.
+		// Daha fazla veri kuyruklanmaz; baglanti merkezi removeClient() ile
+		// guvenli bir noktada (broadcast iterasyonu disinda) kapatilacak.
+		this->_outputOverflow = true;
+		return ;
+	}
 	this->_outBuffer += message;
 }
 
@@ -205,6 +225,11 @@ void	Client::setCloseAfterWrite(bool value)
 bool	Client::closeAfterWrite() const
 {
 	return (this->_closeAfterWrite);
+}
+
+bool	Client::outputOverflow() const
+{
+	return (this->_outputOverflow);
 }
 
 void	Client::setRegFlag(RegFlag flag, bool value)

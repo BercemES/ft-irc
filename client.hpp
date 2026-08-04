@@ -9,6 +9,10 @@
 
 # define IRC_MAX_LINE 510
 
+// Protocol line-length siniri degildir; yalniz yavas/okumayan bir alicinin
+// server bellegini sinirsiz buyutmesini onleyen kaynak-koruma sinirdir.
+# define MAX_PENDING_OUTPUT_BYTES (64 * 1024)
+
 struct IRCMessage {
 	std::string prefix;
 	std::string command;
@@ -43,6 +47,7 @@ class Client
 		std::string	_host;
 		std::string	_outBuffer;
 		bool		_closeAfterWrite;
+		bool		_outputOverflow;
 
 		std::vector<IRCMessage>     _commandsOrder;
 
@@ -65,6 +70,7 @@ class Client
 		void				consumeOutput(std::size_t n);
 		void				setCloseAfterWrite(bool value);
 		bool				closeAfterWrite() const;
+		bool				outputOverflow() const;
 
 		std::string			getHost() const;
 		void				setHost(const std::string& host);
