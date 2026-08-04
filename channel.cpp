@@ -31,7 +31,8 @@ void	Channel::removeMember(Client* client)
 	fd = client->getFd();
 	_members.erase(fd);
 	_operators.erase(fd);
-	_invited.erase(fd);
+	// Davet durumu burada temizlenmez: uyelik ve davet ayri yasam dongulerine
+	// sahiptir (bir davetli hicbir zaman uye olmayabilir). Bkz. removeInvite().
 }
 
 bool	Channel::isMember(Client* client) const
@@ -85,6 +86,16 @@ bool	Channel::isInvited(Client* client) const
 	if (client == NULL)
 		return (false);
 	return (_invited.find(client->getFd()) != _invited.end());
+}
+
+// Davet, uyelikten bagimsiz bir yasam dongusune sahiptir: davet edilen henuz
+// uye olmayabilir. Bu yuzden temizligi removeMember()'a gizlice baglamiyoruz;
+// disconnect sirasinda uyelikten bagimsiz olarak acikca cagrilir.
+void	Channel::removeInvite(Client* client)
+{
+	if (client == NULL)
+		return ;
+	_invited.erase(client->getFd());
 }
 
 bool	Channel::hasTopic() const

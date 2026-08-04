@@ -40,6 +40,7 @@ class Channel
 
 		void							invite(Client* client);
 		bool							isInvited(Client* client) const;
+		void							removeInvite(Client* client);
 
 		bool							hasTopic() const;
 		void							setTopic(const std::string& topic, const std::string& setterNick);

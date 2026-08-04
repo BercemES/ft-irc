@@ -280,9 +280,10 @@ void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
 }
 
 // INVITE <nick> <#kanal>
-// Denetim sirasi: 461 -> 403 -> 442 (davet eden uye degil) -> 482 (+i iken op
-// degil) -> 401 (hedef nick yok) -> 443 (hedef zaten uye). Davetler tek
-// kullanimlik: Channel::addMember JOIN sirasinda daveti tuketir.
+// Denetim sirasi: 461 -> 403 -> 442 (davet eden uye degil) -> 482 (davet eden
+// operator degil; +i sadece JOIN'in davet gerektirip gerektirmedigini belirler)
+// -> 401 (hedef nick yok) -> 443 (hedef zaten uye). Davetler tek kullanimlik:
+// Channel::addMember JOIN sirasinda daveti tuketir.
 void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
@@ -302,7 +303,7 @@ void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg
         client.sendMessage(ERR_NOTONCHANNEL(client.getName(TYPE_NICK), chan->getName()));
         return;
     }
-    if (chan->isInviteOnly() && !chan->isOperator(&client))
+    if (!chan->isOperator(&client))
     {
         client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
         return;
