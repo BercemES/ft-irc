@@ -89,12 +89,13 @@ void Command::handleNick(Server& server, Client& client, const IRCMessage& msg)
     }
     else
     {
-        // Kayitli kullanici nick degistiriyor: kullaniciya bildir. Kanal
-        // entegrasyonu gelince bu bildirim ilgili kanallara da yayilacak.
-        string oldNick = client.getName(TYPE_NICK);
+        // Kayitli kullanici nick degistiriyor: ortak kanal uyeleri (kendisi
+        // dahil, tek sefer) NICK event'i alir. Eski prefix mutasyondan ONCE
+        // yakalanir; broadcastNickChange yeni nick'i client uzerinden okur.
+        string oldPrefix = ":" + client.getName(TYPE_NICK) + "!"
+            + client.getName(TYPE_USER) + "@" + client.getHost();
         client.setName(TYPE_NICK, msg.params[0]);
-        client.sendMessage(":" + oldNick + "!" + client.getName(TYPE_USER) + "@"
-            + client.getHost() + " NICK " + client.getName(TYPE_NICK) + "\r\n");
+        server.broadcastNickChange(client, oldPrefix);
     }
 }
 

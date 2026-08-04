@@ -19,8 +19,29 @@ static void appendApplied(string& applied, char& lastSign, bool adding, char mod
     applied += mode;
 }
 
+// Hedef '#' veya '&' ile baslamiyorsa kanal degil kullanicidir.
+static bool isChannelTarget(const std::string& target)
+{
+    return (!target.empty() && (target[0] == '#' || target[0] == '&'));
+}
+
+// MODE <nick> icin minimal kullanici-mod sorgusu. irssi kayit sirasinda kendi
+// nickini bu sekilde sorgular; tam bir user-mode mutasyon sistemi bu planin
+// kapsami disidir. Kendi nicki disinda bir hedef icin kontrollu 502 doner
+// (yanlislikla 403 "No such channel" uretmek yerine).
+static void handleUserModeQuery(Client& client, const std::string& target)
+{
+    if (Client::ircToLower(target) != Client::ircToLower(client.getName(TYPE_NICK)))
+    {
+        client.sendMessage(ERR_USERSDONTMATCH(client.getName(TYPE_NICK)));
+        return;
+    }
+    client.sendMessage(RPL_UMODEIS(client.getName(TYPE_NICK), "+"));
+}
+
 // MODE <#kanal>                      -> 324 (mod sorgusu)
 // MODE <#kanal> <dizge> [param...]   -> mod degisikligi (yalnizca operatorler)
+// MODE <nick>                        -> 221 (minimal kullanici-mod sorgusu)
 //
 // Dizge +/- isaret durumuyla soldan saga okunur:
 //   i, t : parametresiz bayraklar
@@ -35,6 +56,12 @@ void Command::handleMode(Server& server, Client& client, const IRCMessage& msg)
     if (msg.params.empty() || msg.params[0].empty())
     {
         client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
+        return;
+    }
+
+    if (!isChannelTarget(msg.params[0]))
+    {
+        handleUserModeQuery(client, msg.params[0]);
         return;
     }
 

@@ -109,6 +109,50 @@ void Command::handleMotd(Server&, Client& client, const IRCMessage& msg)
     client.sendMessage(RPL_ENDOFMOTD(client.getName(TYPE_NICK)));
 }
 
+// WHO <#kanal> | WHO <nick>
+// irssi JOIN sonrasinda otomatik WHO gonderir; bunu 421 yerine dogru
+// cevaplamak icin minimal destek. Mask/away/ircop semantigi ve full Modern
+// IRC WHO davranisi (bkz. modern.ircdocs.horse) kapsam disidir.
+void Command::handleWho(Server& server, Client& client, const IRCMessage& msg)
+{
+    if (msg.params.empty() || msg.params[0].empty())
+    {
+        client.sendMessage(RPL_ENDOFWHO(client.getName(TYPE_NICK), "*"));
+        return;
+    }
+
+    const std::string& target = msg.params[0];
+    if (target[0] == '#' || target[0] == '&')
+    {
+        Channel* chan = server.getChannel(target);
+        if (chan != NULL)
+        {
+            const std::map<int, Client*>& members = chan->getMembers();
+            for (std::map<int, Client*>::const_iterator it = members.begin();
+                it != members.end(); ++it)
+            {
+                if (it->second == NULL)
+                    continue;
+                std::string flags = chan->isOperator(it->second) ? "H@" : "H";
+                client.sendMessage(RPL_WHOREPLY(client.getName(TYPE_NICK), chan->getName(),
+                    it->second->getName(TYPE_USER), it->second->getHost(),
+                    it->second->getName(TYPE_NICK), flags, it->second->getName(TYPE_REAL)));
+            }
+        }
+        client.sendMessage(RPL_ENDOFWHO(client.getName(TYPE_NICK), target));
+        return;
+    }
+
+    Client* targetClient = server.getClientByNick(target);
+    if (targetClient != NULL)
+    {
+        client.sendMessage(RPL_WHOREPLY(client.getName(TYPE_NICK), "*",
+            targetClient->getName(TYPE_USER), targetClient->getHost(),
+            targetClient->getName(TYPE_NICK), "H", targetClient->getName(TYPE_REAL)));
+    }
+    client.sendMessage(RPL_ENDOFWHO(client.getName(TYPE_NICK), target));
+}
+
 void Command::handlePrivmsg(Server& server, Client& client, const IRCMessage& msg)
 {
     handleMessage(server, client, msg, false);

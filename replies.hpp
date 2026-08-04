@@ -29,6 +29,30 @@ inline std::string   RPL_ISUPPORT(const std::string& nick, const std::string& to
     return (":ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
 }
 
+// Minimal user-mode query yaniti (ör. irssi'nin baglanti sirasinda gonderdigi
+// "MODE <kendi-nicki>"). Full user-mode mutasyon sistemi implement edilmedigi
+// icin daima bos mod dizgesi ("+") ile cevaplanir.
+inline std::string   RPL_UMODEIS(const std::string& nick, const std::string& modes)
+{
+    return (":ircserv 221 " + nick + " " + modes + "\r\n");
+}
+
+// Minimal WHO reply: tek sunuculu kurulum oldugu icin server alani sabit
+// "ircserv", hopcount sabit "0". away/ircop ayrimi yapilmadigindan H|G
+// bayragi daima "H" (here); kanal operator ise "@" eklenir.
+inline std::string   RPL_WHOREPLY(const std::string& client, const std::string& channel,
+    const std::string& user, const std::string& host, const std::string& nick,
+    const std::string& flags, const std::string& realname)
+{
+    return (":ircserv 352 " + client + " " + channel + " " + user + " " + host
+        + " ircserv " + nick + " " + flags + " :0 " + realname + "\r\n");
+}
+
+inline std::string   RPL_ENDOFWHO(const std::string& client, const std::string& name)
+{
+    return (":ircserv 315 " + client + " " + name + " :End of /WHO list\r\n");
+}
+
 //RPL
 inline std::string	RPL_MOTDSTART(const std::string& client)
 {
@@ -205,6 +229,11 @@ inline std::string	ERR_BADCHANMASK(const std::string& client, const std::string&
 inline std::string	ERR_CHANOPRIVSNEEDED(const std::string& client, const std::string& channel)
 {
 	return (":ircserv 482 " + client + " " + channel + " :You're not channel operator\r\n");
+}
+
+inline std::string	ERR_USERSDONTMATCH(const std::string& client)
+{
+	return (":ircserv 502 " + client + " :Cannot change mode for other users\r\n");
 }
 
 #endif

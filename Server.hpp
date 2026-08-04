@@ -4,6 +4,7 @@
 # include <string>
 # include <vector>
 # include <map>
+# include <set>
 # include <poll.h>
 
 # include "client.hpp"
@@ -32,6 +33,14 @@ private:
     std::map<std::string, std::string>  _isupport;      // RPL_ISUPPORT (005) tokenlari
     std::string                 _creationDate;          // RPL_CREATED (003) icin
 
+    // Deferred-removal kuyrugu: broadcast/sendToClient cagrilari veya
+    // dogrudan client.sendMessage() sirasinda output-overflow olan
+    // istemciler burada YALNIZ isaretlenir. Gercek removeClient() cagrisi
+    // yalniz event-loop'un guvenli noktasinda (processPendingRemovals)
+    // yapilir; boylece Channel/Client container iterasyonu sirasinda
+    // dolayli erase riski olusmaz.
+    std::set<int>                _pendingRemovals;
+
 public:
     Server(const std::string& port, const std::string& password);
     ~Server();
@@ -55,6 +64,7 @@ public:
     void                            removeEmptyChannel(const std::string& name);
     void                            broadcastToChannel(const Channel& channel,
                                         const std::string& message, Client* except = NULL);
+    void                            broadcastNickChange(Client& client, const std::string& oldPrefix);
 
 private:
     Server();
@@ -65,6 +75,8 @@ private:
     void setNonBlocking(int fd);
     void addPollFd(int fd, short events);
     void removeClient(int fd);
+    void requestRemoval(int fd);
+    void processPendingRemovals();
     void removeClientFromChannels(Client& client);
     void acceptClients();
     void readFromClient(int fd);

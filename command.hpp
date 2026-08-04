@@ -22,6 +22,7 @@ public:
     static void         handleUser(Server& server, Client& client, const IRCMessage& msg);
 
     static void         handleMotd(Server& server, Client& client, const IRCMessage& msg);
+    static void         handleWho(Server& server, Client& client, const IRCMessage& msg);
     static void         handlePrivmsg(Server& server, Client& client, const IRCMessage& msg);
     static void         handleNotice(Server& server, Client& client, const IRCMessage& msg);
 
