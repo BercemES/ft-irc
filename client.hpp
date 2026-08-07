@@ -74,6 +74,7 @@ class Client
 
 		std::string			getHost() const;
 		void				setHost(const std::string& host);
+		std::string			getFullPrefix() const;
 		int					getFd() const;
 		void				setName(NameType type, const std::string& value);
 		std::string			getName(NameType type) const;

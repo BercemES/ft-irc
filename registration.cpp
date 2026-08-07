@@ -65,7 +65,10 @@ void Command::handlePass(Server& server, Client& client, const IRCMessage& msg)
 void Command::handleNick(Server& server, Client& client, const IRCMessage& msg)
 {
     if (!client.getRegFlag(FLAG_PASS))
+    {
+        client.sendMessage(ERR_PASSWDMISMATCH(client.getName(TYPE_NICK)));
         return;
+    }
     if (msg.params.empty() || msg.params[0].empty())
     {
         client.sendMessage(ERR_NONICKNAMEGIVEN(client.getName(TYPE_NICK)));
@@ -92,8 +95,7 @@ void Command::handleNick(Server& server, Client& client, const IRCMessage& msg)
         // Kayitli kullanici nick degistiriyor: ortak kanal uyeleri (kendisi
         // dahil, tek sefer) NICK event'i alir. Eski prefix mutasyondan ONCE
         // yakalanir; broadcastNickChange yeni nick'i client uzerinden okur.
-        string oldPrefix = ":" + client.getName(TYPE_NICK) + "!"
-            + client.getName(TYPE_USER) + "@" + client.getHost();
+        string oldPrefix = client.getFullPrefix();
         client.setName(TYPE_NICK, msg.params[0]);
         server.broadcastNickChange(client, oldPrefix);
     }
@@ -102,7 +104,10 @@ void Command::handleNick(Server& server, Client& client, const IRCMessage& msg)
 void Command::handleUser(Server& server, Client& client, const IRCMessage& msg)
 {
     if (!client.getRegFlag(FLAG_PASS))
+    {
+        client.sendMessage(ERR_PASSWDMISMATCH(client.getName(TYPE_NICK)));
         return;
+    }
     if (client.isFullyRegistered())
     {
         client.sendMessage(ERR_ALREADYREGISTERED(client.getName(TYPE_NICK)));

@@ -149,8 +149,7 @@ void Server::addPollFd(int fd, short events)
 // yeniden kullanildiginda eski davet yeni istemciye devreder (+i bypass).
 void Server::removeClientFromChannels(Client& client)
 {
-    std::string quitMsg = ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    std::string quitMsg = client.getFullPrefix()
         + " QUIT :Client Quit\r\n";
     std::map<std::string, Channel>::iterator it = _channels.begin();
     while (it != _channels.end())

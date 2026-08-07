@@ -257,3 +257,8 @@ bool	Client::getRegFlag(RegFlag flag) const
 	return (false);
 }
 
+string Client::getFullPrefix() const
+{
+	return (":" + this->getName(TYPE_NICK) + "!"
+		+ this->getName(TYPE_USER) + "@" + this->getHost());
+}

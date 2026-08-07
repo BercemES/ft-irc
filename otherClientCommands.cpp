@@ -39,8 +39,7 @@ static void sendToChannel(Server& server, Client& sender, const std::string& tar
                 channel->getName()));
         return;
     }
-    server.broadcastToChannel(*channel, ":" + sender.getName(TYPE_NICK) + "!"
-        + sender.getName(TYPE_USER) + "@" + sender.getHost()
+    server.broadcastToChannel(*channel, sender.getFullPrefix()
         + (isNotice ? " NOTICE " : " PRIVMSG ") + channel->getName()
         + " :" + text + "\r\n", &sender);
 }
@@ -55,8 +54,7 @@ static void sendToUser(Server& server, Client& sender, const std::string& target
             sender.sendMessage(ERR_NOSUCHNICK(sender.getName(TYPE_NICK), target));
         return;
     }
-    server.sendToClient(*recipient, ":" + sender.getName(TYPE_NICK) + "!"
-        + sender.getName(TYPE_USER) + "@" + sender.getHost()
+    server.sendToClient(*recipient, sender.getFullPrefix()
         + (isNotice ? " NOTICE " : " PRIVMSG ") + target + " :" + text + "\r\n");
 }
 

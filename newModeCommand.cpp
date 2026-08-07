@@ -39,6 +39,51 @@ static void handleUserModeQuery(Client& client, const std::string& target)
     client.sendMessage(RPL_UMODEIS(client.getName(TYPE_NICK), "+"));
 }
 
+bool Command::prepareChannelMode(Server& server, Client& client, const IRCMessage& msg, Channel*& chan)
+{
+    if (msg.params.empty() || msg.params[0].empty())
+    {
+        client.sendMessage(ERR_NEEDMOREPARAMS(
+            client.getName(TYPE_NICK), msg.command));
+        return false;
+    }
+
+    if (!isChannelTarget(msg.params[0]))
+    {
+        handleUserModeQuery(client, msg.params[0]);
+        return false;
+    }
+
+    chan = server.getChannel(msg.params[0]);
+    if (chan == NULL)
+    {
+        client.sendMessage(ERR_NOSUCHCHANNEL(
+            client.getName(TYPE_NICK), msg.params[0]));
+        return false;
+    }
+
+    if (msg.params.size() < 2 || msg.params[1].empty())
+    {
+        client.sendMessage(RPL_CHANNELMODEIS(
+            client.getName(TYPE_NICK),
+            chan->getName(),
+            chan->getModeString()));
+        return false;
+    }
+
+    if (!chan->isOperator(&client))
+    {
+        client.sendMessage(ERR_CHANOPRIVSNEEDED(
+            client.getName(TYPE_NICK),
+            chan->getName()));
+        return false;
+    }
+
+    return true;
+}
+
+
+
 // MODE <#kanal>                      -> 324 (mod sorgusu)
 // MODE <#kanal> <dizge> [param...]   -> mod degisikligi (yalnizca operatorler)
 // MODE <nick>                        -> 221 (minimal kullanici-mod sorgusu)
@@ -53,37 +98,10 @@ static void handleUserModeQuery(Client& client, const std::string& target)
 // tek satirda kanala yayinlanir: ":nick!user@host MODE #ch +ik-l key" gibi.
 void Command::handleMode(Server& server, Client& client, const IRCMessage& msg)
 {
-    if (msg.params.empty() || msg.params[0].empty())
-    {
-        client.sendMessage(ERR_NEEDMOREPARAMS(client.getName(TYPE_NICK), msg.command));
-        return;
-    }
+    Channel* chan = NULL;
 
-    if (!isChannelTarget(msg.params[0]))
-    {
-        handleUserModeQuery(client, msg.params[0]);
+    if (!prepareChannelMode(server, client, msg, chan))
         return;
-    }
-
-    Channel* chan = server.getChannel(msg.params[0]);
-    if (chan == NULL)
-    {
-        client.sendMessage(ERR_NOSUCHCHANNEL(client.getName(TYPE_NICK), msg.params[0]));
-        return;
-    }
-
-    if (msg.params.size() < 2 || msg.params[1].empty())    // sorgu
-    {
-        client.sendMessage(RPL_CHANNELMODEIS(client.getName(TYPE_NICK),
-            chan->getName(), chan->getModeString()));
-        return;
-    }
-
-    if (!chan->isOperator(&client))
-    {
-        client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
-        return;
-    }
 
     const string& modes = msg.params[1];
     size_t paramIdx = 2;        // parametreler sirayla buradan tuketilir

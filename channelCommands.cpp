@@ -95,8 +95,7 @@ static void joinOne(Server& server, Client& client, const string& name, const st
         chan->addOperator(&client);
 
     // JOIN, kanalin tum uyelerine (girene de onay olarak) yayinlanir.
-    string prefix = ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost();
+    string prefix = client.getFullPrefix();
     server.broadcastToChannel(*chan, prefix + " JOIN " + chan->getName() + "\r\n");
 
     if (chan->hasTopic())
@@ -128,8 +127,7 @@ static void partOne(Server& server, Client& client, const string& name, const st
     }
 
     // Yayin uyelik silinmeden YAPILIR ki ayrilan da onayini alsin.
-    string prefix = ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost();
+    string prefix = client.getFullPrefix();
     server.broadcastToChannel(*chan, prefix + " PART " + chan->getName()
         + (reason.empty() ? "" : " :" + reason) + "\r\n");
 
@@ -225,8 +223,7 @@ void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
     chan->setTopic(msg.params[1], client.getName(TYPE_NICK));
-    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.broadcastToChannel(*chan, client.getFullPrefix()
         + " TOPIC " + chan->getName() + " :" + msg.params[1] + "\r\n");
 }
 
@@ -270,8 +267,7 @@ void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
         ? msg.params[2] : client.getName(TYPE_NICK);
 
     // Yayin uyelik silinmeden YAPILIR ki atilan da KICK'i gorsun.
-    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.broadcastToChannel(*chan, client.getFullPrefix()
         + " KICK " + chan->getName() + " " + target->getName(TYPE_NICK)
         + " :" + reason + "\r\n");
 
@@ -325,7 +321,6 @@ void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg
     chan->invite(target);
     client.sendMessage(RPL_INVITING(client.getName(TYPE_NICK),
         target->getName(TYPE_NICK), chan->getName()));
-    server.sendToClient(*target, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.sendToClient(*target, client.getFullPrefix()
         + " INVITE " + target->getName(TYPE_NICK) + " " + chan->getName() + "\r\n");
 }
