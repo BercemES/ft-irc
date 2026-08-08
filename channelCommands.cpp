@@ -5,6 +5,7 @@
 #include <vector>
 
 using std::string;
+using std::vector;
 
 // Kanal adi kurallari (RFC 2812): '#' veya '&' ile baslar, prefix disinda en
 // az 1, toplam en fazla 50 karakter; bosluk, virgul ve BEL (^G) iceremez.
@@ -24,9 +25,9 @@ static bool isValidChannelName(const string& name)
 
 // Virgulle ayrilmis listeyi parcalarina ayirir. Bos parcalar KORUNUR: anahtar
 // listesinde ",k2" gibi bos yuvalar konumsal olarak anlamlidir.
-static std::vector<string> splitList(const string& list)
+static vector<string> splitList(const string& list)
 {
-    std::vector<string> out;
+    vector<string> out;
     std::stringstream ss(list);
     string item;
 
@@ -145,8 +146,8 @@ void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    std::vector<string> names = splitList(msg.params[0]);
-    std::vector<string> keys;
+    vector<string> names = splitList(msg.params[0]);
+    vector<string> keys;
     if (msg.params.size() >= 2)
         keys = splitList(msg.params[1]);
 
@@ -167,7 +168,7 @@ void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    std::vector<string> names = splitList(msg.params[0]);
+    vector<string> names = splitList(msg.params[0]);
     string reason = msg.params.size() >= 2 ? msg.params[1] : string();
 
     for (size_t i = 0; i < names.size(); ++i)
