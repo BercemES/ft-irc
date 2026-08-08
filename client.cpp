@@ -4,7 +4,8 @@ using std::string;
 
 Client::Client(int fd):
 	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false),
-	_isRegistered(false), _closeAfterWrite(false), _outputOverflow(false) {}
+	_isRegistered(false), _closeAfterWrite(false), _outputOverflow(false),
+	_quitReason("Client Quit") {}
 
 Client::~Client() {}
 
@@ -261,4 +262,14 @@ string Client::getFullPrefix() const
 {
 	return (":" + this->getName(TYPE_NICK) + "!"
 		+ this->getName(TYPE_USER) + "@" + this->getHost());
+}
+
+void	Client::setQuitReason(const string& reason)
+{
+	this->_quitReason = reason;
+}
+
+string	Client::getQuitReason() const
+{
+	return (this->_quitReason);
 }

@@ -174,7 +174,8 @@ void Server::addPollFd(int fd, short events)
 void Server::removeClientFromChannels(Client& client)
 {
     string quitMsg = client.getFullPrefix()
-        + " QUIT :Client Quit\r\n";
+        + " QUIT :" + client.getQuitReason() + "\r\n";
+    set<int> recipients;
     map<string, Channel>::iterator it = _channels.begin();
     while (it != _channels.end())
     {
@@ -182,15 +183,33 @@ void Server::removeClientFromChannels(Client& client)
         chan.removeInvite(&client);
         if (chan.isMember(&client))
         {
+            // Yayin alacaklari uyelik silinmeden ONCE topla (kendisi haric);
+            // ayni alici birden fazla ortak kanal paylasabileceginden fd'ler
+            // set ile tekillestirilir, QUIT mesaji her aliciya tek sefer gider.
+            const map<int, Client*>& members = chan.getMembers();
+            for (map<int, Client*>::const_iterator mit = members.begin();
+                mit != members.end(); ++mit)
+            {
+                if (mit->first != client.getFd())
+                    recipients.insert(mit->first);
+            }
+
             chan.removeMember(&client);
             if (chan.isEmpty())
             {
                 _channels.erase(it++);
                 continue;
             }
-            broadcastToChannel(chan, quitMsg);
         }
         ++it;
+    }
+
+    for (set<int>::const_iterator rit = recipients.begin();
+        rit != recipients.end(); ++rit)
+    {
+        map<int, Client>::iterator cit = _clients.find(*rit);
+        if (cit != _clients.end())
+            sendToClient(cit->second, quitMsg);
     }
 }
 

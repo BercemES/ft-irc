@@ -37,8 +37,18 @@ void Command::handlePing(Server&, Client& client, const IRCMessage& msg)
     client.sendMessage("PONG :" + payload + "\r\n");
 }
 
-void Command::handleQuit(Server&, Client& client, const IRCMessage&)
+void Command::handleQuit(Server&, Client& client, const IRCMessage& msg)
 {
-    client.sendMessage("ERROR :Closing Link\r\n");
+    std::string reason;
+    if (!msg.params.empty())
+        reason = msg.params[0];
+
+    std::string errorMsg = "ERROR :Closing Link. Bye for now!";
+    if (!reason.empty())
+    {
+        client.setQuitReason("Quit: " + reason);
+        errorMsg += " (Quit: " + reason + ")";
+    }
+    client.sendMessage(errorMsg + "\r\n");
     client.setCloseAfterWrite(true);
 }

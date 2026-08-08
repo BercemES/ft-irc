@@ -7,10 +7,11 @@
 
 using std::string;
 
+
 static std::vector<string> splitTargets(const string& targetList)
 {
     std::vector<string> targets;
-    stringstream stream(targetList);
+    std::stringstream stream(targetList);
     string target;
 
     while (std::getline(stream, target, ','))

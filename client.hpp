@@ -48,6 +48,7 @@ class Client
 		std::string	_outBuffer;
 		bool		_closeAfterWrite;
 		bool		_outputOverflow;
+		std::string	_quitReason;
 
 		std::vector<IRCMessage>     _commandsOrder;
 
@@ -75,6 +76,8 @@ class Client
 		std::string			getHost() const;
 		void				setHost(const std::string& host);
 		std::string			getFullPrefix() const;
+		void				setQuitReason(const std::string& reason);
+		std::string			getQuitReason() const;
 		int					getFd() const;
 		void				setName(NameType type, const std::string& value);
 		std::string			getName(NameType type) const;
