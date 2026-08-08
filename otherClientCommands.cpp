@@ -1,4 +1,4 @@
-#include "command.hpp"
+#include "Command.hpp"
 #include "Server.hpp"
 
 #include <algorithm>
@@ -6,7 +6,6 @@
 #include <vector>
 
 using std::string;
-
 
 static std::vector<string> splitTargets(const string& targetList)
 {
@@ -109,10 +108,6 @@ void Command::handleMotd(Server&, Client& client, const IRCMessage& msg)
     client.sendMessage(RPL_ENDOFMOTD(client.getName(TYPE_NICK)));
 }
 
-// WHO <#kanal> | WHO <nick>
-// irssi JOIN sonrasinda otomatik WHO gonderir; bunu 421 yerine dogru
-// cevaplamak icin minimal destek. Mask/away/ircop semantigi ve full Modern
-// IRC WHO davranisi kapsam disidir.
 void Command::handleWho(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.empty() || msg.params[0].empty())

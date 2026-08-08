@@ -5,12 +5,10 @@
 # include <vector>
 # include <sys/socket.h>
 
-# include "replies.hpp"
+# include "Replies.hpp"
 
 # define IRC_MAX_LINE 510
 
-// Protocol line-length siniri degildir; yalniz yavas/okumayan bir alicinin
-// server bellegini sinirsiz buyutmesini onleyen kaynak-koruma sinirdir.
 # define MAX_PENDING_OUTPUT_BYTES (64 * 1024)
 
 struct IRCMessage {
@@ -54,7 +52,7 @@ class Client
 
 		IRCMessage			parseIRC(const std::string& line);
 		static std::string	nextParam(const std::string& line, size_t& pos);
-		
+
 	public:
 		Client(int fd);
 		~Client();
@@ -85,6 +83,4 @@ class Client
 		bool				getRegFlag(RegFlag flag) const;
 };
 
-
 #endif
-

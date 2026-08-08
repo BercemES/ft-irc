@@ -1,9 +1,7 @@
-#include "command.hpp"
+#include "Command.hpp"
 
 #include <cctype>
 
-// Komut adlarini eslestirmek icin ASCII buyuk-harfe cevirir (komutlar
-// case-insensitive). Handler'lar Server'i kullanmadigi icin parametre adsiz.
 std::string Command::upper(const std::string& str)
 {
     std::string out = str;
@@ -12,8 +10,6 @@ std::string Command::upper(const std::string& str)
     return out;
 }
 
-// CAP: minimal muzakere. LS/REQ/END disindakilere de kayit akisini
-// bloklamamak icin LS ile cevap veriyoruz.
 void Command::handleCap(Server&, Client& client, const IRCMessage& msg)
 {
     std::string sub;

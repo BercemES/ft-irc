@@ -3,13 +3,10 @@
 
 # include <string>
 
-# include "client.hpp"   // Client, IRCMessage
+# include "Client.hpp"
 
 class Server;
 
-// Komut handler'lari ayni imzayi paylasir: (Server&, Client&, IRCMessage).
-// Boylece Server'daki fonksiyon-pointer tablosuna (CmdFunc) tek tip olarak
-// girerler. Yeni komutlar (PASS/NICK/USER/...) sonraki adimlarda eklenecek.
 class Command
 {
 public:

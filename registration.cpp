@@ -1,4 +1,4 @@
-#include "command.hpp"
+#include "Command.hpp"
 #include "Server.hpp"
 
 #include <cctype>
@@ -6,9 +6,6 @@
 
 using std::string;
 
-// Nick kurallari: rakamla baslamaz; :/#/& ile baslamaz; bosluk icermez;
-// yalnizca harf/rakam ve belirli ozel semboller. nick bos olmamalidir (cagiran
-// taraf bunu garanti eder).
 static bool checkNickname(const string& nick)
 {
     string acceptableSymbols = "[]\\`_^{|}";
@@ -92,9 +89,7 @@ void Command::handleNick(Server& server, Client& client, const IRCMessage& msg)
     }
     else
     {
-        // Kayitli kullanici nick degistiriyor: ortak kanal uyeleri (kendisi
-        // dahil, tek sefer) NICK event'i alir. Eski prefix mutasyondan ONCE
-        // yakalanir; broadcastNickChange yeni nick'i client uzerinden okur.
+
         string oldPrefix = client.getFullPrefix();
         client.setName(TYPE_NICK, msg.params[0]);
         server.broadcastNickChange(client, oldPrefix);

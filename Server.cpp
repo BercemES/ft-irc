@@ -1,5 +1,5 @@
 #include "Server.hpp"
-#include "command.hpp"
+#include "Command.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -67,8 +67,7 @@ void Server::start()
 {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    // send() bir kapanmis peer'a yazarsa SIGPIPE process'i sonlandirabilir;
-    // hata zaten EPIPE olarak send() donusunden okunuyor, bu yuzden sinyali yoksay.
+
     signal(SIGPIPE, SIG_IGN);
     setupSocket();
     cout << "IRC server listening on port " << _port << endl;
@@ -82,22 +81,12 @@ void Server::start()
         }
         for (size_t i = 0; i < _pollFds.size() && ready > 0; ++i)
             handlePollEvents(i, ready);
-        // Bu turun tum revents'leri islendi: ne _pollFds/_clients uzerinde
-        // aktif bir iterasyon ne de bir handler call-stack'i var. Deferred
-        // removal'lari flush etmek icin tek guvenli nokta burasidir.
+
         processPendingRemovals();
     }
     cout << "Server stopped" << endl;
 }
 
-// POLLIN ve POLLHUP/POLLERR ayni turda birlikte gelebilir: peer son verisini
-// yazip hemen kapatirsa kernel her ikisini de tek poll() donusunde bildirir.
-// Bu yuzden HUP/ERR/NVAL asla POLLIN'den ONCE islenmez -- once elde ne varsa
-// okunur (readFromClient kendi ic dongusunde veri bitene/EAGAIN'e kadar
-// recv eder), ardindan gerekiyorsa POLLOUT, en sonda hala hayattaysa
-// HUP/ERR/NVAL uzerinden temizlik yapilir. readFromClient zaten recv()==0
-// gordugunde removeClient() cagirir; asagidaki `_pollFds[i].fd == fd`
-// kontrolleri bu durumda ayni fd uzerinde tekrar islem yapilmasini engeller.
 void Server::handlePollEvents(size_t& i, int& ready)
 {
     int fd = _pollFds[i].fd;
@@ -162,15 +151,6 @@ void Server::addPollFd(int fd, short events)
     _pollFds.push_back(pfd);
 }
 
-// Baglanti kapanirken istemci tum kanallardan cikarilir; kalan uyeler QUIT
-// bildirimi alir, bosalan kanal silinir. Bu temizlik Client nesnesi hala
-// hayattayken (erase'ten ONCE) yapilmali, yoksa kanallardaki Client*
-// gozlemcileri serbest birakilmis bellege isaret eder (dangling pointer).
-//
-// Davet temizligi uyelikten bagimsiz olarak HER kanal icin yapilir: bir
-// davetli hicbir zaman uye olmamis olabilir, bu yuzden yalniz uyelik uzerinden
-// (chan.isMember kontrolu gecen kanallar) gidilemez. Bu adim atlanirsa, fd
-// yeniden kullanildiginda eski davet yeni istemciye devreder (+i bypass).
 void Server::removeClientFromChannels(Client& client)
 {
     string quitMsg = client.getFullPrefix()
@@ -183,9 +163,7 @@ void Server::removeClientFromChannels(Client& client)
         chan.removeInvite(&client);
         if (chan.isMember(&client))
         {
-            // Yayin alacaklari uyelik silinmeden ONCE topla (kendisi haric);
-            // ayni alici birden fazla ortak kanal paylasabileceginden fd'ler
-            // set ile tekillestirilir, QUIT mesaji her aliciya tek sefer gider.
+
             const map<int, Client*>& members = chan.getMembers();
             for (map<int, Client*>::const_iterator mit = members.begin();
                 mit != members.end(); ++mit)
@@ -217,7 +195,7 @@ void Server::removeClient(int fd)
 {
     map<int, Client>::iterator cit = _clients.find(fd);
     if (cit == _clients.end())
-        return ;    // zaten kaldirilmis (ör. ayni turda baska bir yoldan); no-op
+        return ;
     removeClientFromChannels(cit->second);
     cout << "Client disconnected fd=" << fd << endl;
     close(fd);
@@ -232,23 +210,12 @@ void Server::removeClient(int fd)
     _clients.erase(fd);
 }
 
-// Bir istemciyi HEMEN silmek yerine yalniz "silinmeli" olarak isaretler.
-// Cagiran taraf (sendToClient/broadcastToChannel) bir Channel/Client
-// container iterasyonunun veya derin bir handler call-stack'inin ortasinda
-// olabilir; gercek removeClient() orada guvenli degildir. set fd'yi
-// dogal olarak tekillestirir, ayni istemci birden fazla kez isaretlense de
-// tek silme islemi yapilir.
 void Server::requestRemoval(int fd)
 {
     if (_clients.find(fd) != _clients.end())
         _pendingRemovals.insert(fd);
 }
 
-// Her poll turunun sonunda cagrilir. Once _clients'daki TUM istemciler
-// output-overflow acisindan taranir: bu, cagri yoluna bakmaksizin (ister
-// sendToClient/broadcastToChannel uzerinden, ister bir handler'in dogrudan
-// client.sendMessage() cagrisindan) olusan her overflow'u yakalar. Ardindan
-// isaretli fd'ler icin gercek removeClient() bu guvenli noktada calisir.
 void Server::processPendingRemovals()
 {
     for (map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -256,14 +223,7 @@ void Server::processPendingRemovals()
         if (it->second.outputOverflow())
             _pendingRemovals.insert(it->first);
     }
-    // removeClient() -> removeClientFromChannels() -> broadcastToChannel()
-    // zincirinde kalan uyelere QUIT yayinlanirken yeni requestRemoval()
-    // cagrilari olusabilir (ör. o yayinla dolan baska bir slow-reader).
-    // Ayni set uzerinde iterasyon yaparken bunu eklemek UB degildir, ama
-    // hangi elemanin bu turda islenip hangisinin ertelendigi konum bagimli
-    // hale gelir. Bunun yerine her batch ayri bir kopyaya swap edilip
-    // tuketilir; bu sirada olusan yeni istekler _pendingRemovals'ta acikca
-    // bir SONRAKI batch'e kalir.
+
     while (!_pendingRemovals.empty())
     {
         set<int> pending;
@@ -290,12 +250,10 @@ void Server::acceptClients()
         try
 		{
             setNonBlocking(fd);
-        } 
+        }
 		catch (const std::exception& e)
 		{
-            // Tek bir accepted fd icin setup hatasi fatal degildir; yalniz bu
-            // baglanti reddedilir, event loop calismaya devam eder. Listener
-            // setup hatasi (setupSocket) ayri bir yoldur ve fatal kalir.
+
             cerr << "client fd=" << fd << " setup failed: " << e.what() << endl;
             close(fd);
             continue;
@@ -314,7 +272,7 @@ void Server::readFromClient(int fd)
 	{
         std::memset(buffer, 0, sizeof(buffer));
         ssize_t bytes = recv(fd, buffer, sizeof(buffer), 0);
-        if (bytes > 0) 
+        if (bytes > 0)
 		{
             map<int, Client>::iterator it = _clients.find(fd);
             if (it == _clients.end())
@@ -390,9 +348,7 @@ void Server::writeToClient(int fd)
     }
 	else
 	{
-        // sent == 0 iken pending output var: ilerleme yok, baglanti
-        // kullanilamaz durumda. Sonsuz POLLOUT dongusune girmemek icin
-        // istemciyi kaldir.
+
         removeClient(fd);
     }
 }
@@ -432,8 +388,6 @@ void Server::initCommands()
     _commands["INVITE"] = &Command::handleInvite;
 }
 
-/* Komut dagitimi: komut adi (case-insensitive) tabloda aranir; bulunursa
-   ilgili Command:: statik handler'i cagrilir. */
 void Server::handleCommand(Client& client, const IRCMessage& msg)
 {
     cout << "fd=" << client.getFd() << " > " << msg.command << endl;
@@ -444,9 +398,7 @@ void Server::handleCommand(Client& client, const IRCMessage& msg)
         client.sendMessage(ERR_UNKNOWNCOMMAND(client.getName(TYPE_NICK), msg.command));
         return;
     }
-    // Kayit kapisi: kayitli olmayan istemci yalnizca el sikisma/kayit
-    // komutlarini kullanabilir; digerleri icin ERR_NOTREGISTERED (451).
-    // CAP/PING/QUIT muaf: istemciler CAP LS'i PASS'tan once gonderir.
+
     if (!client.isFullyRegistered()
         && cmd != "PASS" && cmd != "NICK" && cmd != "USER"
         && cmd != "CAP" && cmd != "PING" && cmd != "QUIT")
@@ -490,9 +442,6 @@ const string& Server::getCreationDate() const
     return _creationDate;
 }
 
-// Bir handler baska bir istemciye mesaj gonderdiginde, hedef fd icin
-// POLLOUT'u hemen etkinlestirir. Boylece hedefin yeni bir komut yazmasini
-// beklemeden tamponlu cikis poll dongusu tarafindan bosaltilir.
 void Server::sendToClient(Client& client, const string& message)
 {
     int fd = client.getFd();
@@ -505,8 +454,6 @@ void Server::sendToClient(Client& client, const string& message)
     updatePollEvents(fd);
 }
 
-// Kayit tamamlandiginda (PASS+NICK+USER) hos geldin numeric'lerini gonderir.
-// Yalnizca client'i degistirir; Server durumunu okur (creationDate), o yuzden const.
 void Server::checkReg(Client& client) const
 {
     if (client.getRegFlag(FLAG_REGISTERED))
@@ -517,15 +464,10 @@ void Server::checkReg(Client& client) const
     client.sendMessage(RPL_WELCOME(client.getName(TYPE_NICK), client.getName(TYPE_USER), client.getHost()));
     client.sendMessage(RPL_YOURHOST(client.getName(TYPE_NICK), "ircserv 1.0"));
     client.sendMessage(RPL_CREATED(client.getName(TYPE_NICK), getCreationDate()));
-    // RPL_MYINFO servername'i kendi icinde ekliyor; version alanina ayrica
-    // "ircserv" gecirmek servername'i tekrarlar ve bosluk yuzunden fazladan
-    // bir token gibi gorunur (ör. "ircserv ircserv 1.0 ..."). Version tek
-    // basina, bosluksuz tek token olmali.
+
     client.sendMessage(RPL_MYINFO(client.getName(TYPE_NICK), "1.0", "i", "t,k,l"));
 }
 
-// Nick'ler case-insensitive eslestirilir. PRIVMSG/NOTICE ve MODE +o/-o,
-// KICK, INVITE gibi nick hedefli komutlarin ortak aramasi.
 Client* Server::getClientByNick(const string& nick)
 {
     string lowered = Client::ircToLower(nick);
@@ -539,9 +481,6 @@ Client* Server::getClientByNick(const string& nick)
     return NULL;
 }
 
-// Kanal adlari case-insensitive'dir: harita anahtari ircToLower ile normalize
-// edilir; kanalin gorunen adi ise ilk olusturanin yazdigi haliyle Channel
-// icinde saklanir.
 Channel* Server::getChannel(const string& name)
 {
     map<string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
@@ -550,8 +489,6 @@ Channel* Server::getChannel(const string& name)
     return &it->second;
 }
 
-// Channel'in default constructor'u yok; bu yuzden operator[] derlenmez,
-// find + insert kullanilir.
 Channel& Server::getOrCreateChannel(const string& name)
 {
     string key = Client::ircToLower(name);
@@ -561,7 +498,6 @@ Channel& Server::getOrCreateChannel(const string& name)
     return it->second;
 }
 
-// Son uye ayrildiginda kanali kaldirir (PART/QUIT/KICK sonrasinda cagrilir).
 void Server::removeEmptyChannel(const string& name)
 {
     map<string, Channel>::iterator it = _channels.find(Client::ircToLower(name));
@@ -569,19 +505,11 @@ void Server::removeEmptyChannel(const string& name)
         _channels.erase(it);
 }
 
-// Kanala yayin: Channel::broadcast mesaji uyelerin tamponina yazar; ardindan
-// her uyenin fd'si icin POLLOUT etkinlestirilir ki mesajlar hedefler kendi
-// olayini beklemeden aksin (sendToClient'in kanal karsiligi).
 void Server::broadcastToChannel(const Channel& channel, const string& message, Client* except)
 {
     channel.broadcast(message, except);
     const map<int, Client*>& members = channel.getMembers();
-    // Asiri dolan (slow-reader) uyeler burada yalniz ISARETLENIR
-    // (requestRemoval), silinmez: Channel::_members uzerinde hala iterasyon
-    // halindeyiz ve gercek removeClient() bu haritayi (removeMember uzerinden)
-    // degistirirdi. requestRemoval yalniz _pendingRemovals kumesine ekler,
-    // hicbir Channel/Client container'ini mutasyona ugratmadigi icin bu
-    // dongu icinde cagrilmasi guvenlidir.
+
     for (map<int, Client*>::const_iterator it = members.begin(); it != members.end(); ++it)
     {
         updatePollEvents(it->first);
@@ -590,11 +518,6 @@ void Server::broadcastToChannel(const Channel& channel, const string& message, C
     }
 }
 
-// Kayitli bir kullanici nick degistirdiginde ortak kanal uyelerine NICK
-// event'ini yayinlar. Ayni alici birden fazla ortak kanal paylasabileceginden
-// fd'ler set ile tekillestirilir; degisen kullanici event'i en sonda ve
-// tek sefer alir. oldPrefix cagiran tarafindan (mutasyondan ONCE) yakalanir,
-// cunku bu fonksiyon yeni nick'i client.getName() uzerinden okur.
 void Server::broadcastNickChange(Client& client, const string& oldPrefix)
 {
     string nickMsg = oldPrefix + " NICK " + client.getName(TYPE_NICK) + "\r\n";
