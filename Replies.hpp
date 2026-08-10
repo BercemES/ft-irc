@@ -109,7 +109,7 @@ inline std::string	ERR_NEEDMOREPARAMS(const std::string& client, const std::stri
 inline std::string	ERR_ALREADYREGISTERED(const std::string& client)
 {
 
-	return(":ircserv 462 " + client + " :You may not reregister\r\n");
+	return(":ircserv 462 " + client + " :You may not register\r\n");
 }
 
 inline std::string	ERR_PASSWDMISMATCH(const std::string& client)

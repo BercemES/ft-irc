@@ -7,8 +7,8 @@
 # include <set>
 # include <poll.h>
 
-# include "client.hpp"
-# include "channel.hpp"
+# include "Client.hpp"
+# include "Channel.hpp"
 
 class Server
 {

@@ -235,17 +235,15 @@ void Server::processPendingRemovals()
 
 void Server::acceptClients()
 {
-    while (true)
-    {
         sockaddr_in addr;
         socklen_t len = sizeof(addr);
         int fd = accept(_serverFd, reinterpret_cast<sockaddr*>(&addr), &len);
         if (fd < 0)
 		{
             if (errno == EAGAIN || errno == EWOULDBLOCK)
-				break;
+				return;
             cerr << "accept failed: " << strerror(errno) << endl;
-            break;
+            return;
         }
         try
 		{
@@ -256,57 +254,48 @@ void Server::acceptClients()
 
             cerr << "client fd=" << fd << " setup failed: " << e.what() << endl;
             close(fd);
-            continue;
+            return;
         }
         addPollFd(fd, POLLIN);
         map<int, Client>::iterator res = _clients.insert(std::make_pair(fd, Client(fd))).first;
         res->second.setHost(inet_ntoa(addr.sin_addr));
         cout << "New client fd=" << fd << " ip=" << inet_ntoa(addr.sin_addr) << endl;
-    }
+
 }
 
 void Server::readFromClient(int fd)
 {
     char buffer[512];
-    while (true)
+    std::memset(buffer, 0, sizeof(buffer));
+    ssize_t bytes = recv(fd, buffer, sizeof(buffer), 0);
+    if (bytes > 0)
 	{
-        std::memset(buffer, 0, sizeof(buffer));
-        ssize_t bytes = recv(fd, buffer, sizeof(buffer), 0);
-        if (bytes > 0)
-		{
-            map<int, Client>::iterator it = _clients.find(fd);
-            if (it == _clients.end())
-                return;
-            it->second.appendToBuffer(string(buffer, bytes));
-            while (true)
-			{
-                map<int, Client>::iterator cit = _clients.find(fd);
-                if (cit == _clients.end() || !cit->second.hasCommands())
-                    break;
-                IRCMessage msg = cit->second.getNextCommand();
-                handleCommand(cit->second, msg);
-            }
-            if (_clients.find(fd) == _clients.end())
-                return;
-        }
-		else if (bytes == 0)
-		{
-            removeClient(fd);
+        map<int, Client>::iterator it = _clients.find(fd);
+        if (it == _clients.end())
             return;
-        }
-		else
+        it->second.appendToBuffer(string(buffer, bytes));
+        while (true)
 		{
-            if (errno == EINTR)
-				continue;
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-				break;
-            cerr << "recv failed fd=" << fd << ": " << strerror(errno) << endl;
-            removeClient(fd);
-            return;
+            map<int, Client>::iterator cit = _clients.find(fd);
+            if (cit == _clients.end() || !cit->second.hasCommands())
+                break;
+            IRCMessage msg = cit->second.getNextCommand();
+            handleCommand(cit->second, msg);
         }
+        if (_clients.find(fd) != _clients.end())
+        	updatePollEvents(fd);
     }
-    if (_clients.find(fd) != _clients.end())
-        updatePollEvents(fd);
+	else if (bytes == 0)
+	{
+        removeClient(fd);
+    }
+	else
+	{
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+			return;
+        cerr << "recv failed fd=" << fd << ": " << strerror(errno) << endl;
+        removeClient(fd);
+    }
 }
 
 void Server::writeToClient(int fd)
@@ -323,12 +312,7 @@ void Server::writeToClient(int fd)
         return;
     }
     const string& out = client.outBuffer();
-    ssize_t sent;
-    do
-	{
-        sent = send(fd, out.c_str(), out.size(), 0);
-    }
-	while (sent < 0 && errno == EINTR);
+    ssize_t sent = send(fd, out.c_str(), out.size(), 0);
     if (sent > 0)
 	{
         client.consumeOutput(static_cast<std::size_t>(sent));
@@ -341,14 +325,13 @@ void Server::writeToClient(int fd)
     }
 	else if (sent < 0)
 	{
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
 			return;
         cerr << "send failed fd=" << fd << ": " << strerror(errno) << endl;
         removeClient(fd);
     }
 	else
 	{
-
         removeClient(fd);
     }
 }
