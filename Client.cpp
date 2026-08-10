@@ -1,13 +1,13 @@
-#include "client.hpp"
+#include "Client.hpp"
 
 using std::string;
 
 Client::Client(int fd):
 	_fd(fd), _passFlag(false), _nickFlag(false), _userFlag(false),
-	_isRegistered(false), _closeAfterWrite(false), _outputOverflow(false) {}
+	_isRegistered(false), _closeAfterWrite(false), _outputOverflow(false),
+	_quitReason("Client Quit") {}
 
 Client::~Client() {}
-
 
 string	Client::nextParam(const string& line, size_t& pos)
 {
@@ -91,8 +91,7 @@ void	Client::appendToBuffer(const string& message)
 	}
 	if (_buffer.size() > IRC_MAX_LINE)
 	{
-		// CRLF gelmeden biriken parca izin verilen satir uzunlugunu asti:
-		// sinirsiz buyumeyi onlemek icin baglanti guvenli sekilde kapatilir.
+
 		this->sendMessage(ERR_INPUTTOOLONG(this->getName(TYPE_NICK)));
 		this->_buffer.clear();
 		this->setCloseAfterWrite(true);
@@ -134,7 +133,6 @@ bool	Client::isFullyRegistered() const
 	return (this->_nickFlag && this->_passFlag && this->_userFlag);
 }
 
-
 string	Client::getHost() const
 {
 	return (this->_host);
@@ -150,15 +148,13 @@ int	Client::getFd() const
 	return (this->_fd);
 }
 
-
 string	Client::getName(NameType type) const
 {
 	if (type == TYPE_NICK)
 	{
 		if (this->_nickname.empty())
-			return("*"); 
-// Error dönerken hatada nickname yoksa * gösterilmesi gerekiyor diye direkt gete ekledim.
-// Kullanıcının nicki var mı diye kontrol etmek isterseniz empty() değil; getName(TYPE_NICK) != "*" a şeklinde kontrol etmemizz lazım  
+			return("*");
+
 		return (this->_nickname);
 	}
 	if (type == TYPE_USER)
@@ -167,7 +163,6 @@ string	Client::getName(NameType type) const
 		return (this->_realname);
 	return ("");
 }
-
 
 void	Client::setName(NameType type, const std::string& value)
 {
@@ -185,17 +180,13 @@ void	Client::setName(NameType type, const std::string& value)
 		this->_realname = value;
 }
 
-// Ağ katmanı non-blocking: dogrudan send() yerine cikti Client'in kendi
-// out-buffer'ina yazilir; Server bunu POLLOUT geldiginde bosaltir.
 void	Client::sendMessage(const string& message)
 {
 	if (this->_outputOverflow)
 		return ;
 	if (this->_outBuffer.size() + message.size() > MAX_PENDING_OUTPUT_BYTES)
 	{
-		// Yavas/okumayan alici: cikti kuyrugu bellek korumasi icin sinirlidir.
-		// Daha fazla veri kuyruklanmaz; baglanti merkezi removeClient() ile
-		// guvenli bir noktada (broadcast iterasyonu disinda) kapatilacak.
+
 		this->_outputOverflow = true;
 		return ;
 	}
@@ -234,9 +225,9 @@ bool	Client::outputOverflow() const
 
 void	Client::setRegFlag(RegFlag flag, bool value)
 {
-	if (flag == FLAG_PASS) 
+	if (flag == FLAG_PASS)
 		this->_passFlag = value;
-	else if (flag == FLAG_NICK) 
+	else if (flag == FLAG_NICK)
 		this->_nickFlag = value;
 	else if (flag == FLAG_USER)
 		this->_userFlag = value;
@@ -246,9 +237,9 @@ void	Client::setRegFlag(RegFlag flag, bool value)
 
 bool	Client::getRegFlag(RegFlag flag) const
 {
-	if (flag == FLAG_PASS) 
+	if (flag == FLAG_PASS)
 		return (this->_passFlag);
-	else if (flag == FLAG_NICK) 
+	else if (flag == FLAG_NICK)
 		return (this->_nickFlag);
 	else if (flag == FLAG_USER)
 		return (this->_userFlag);
@@ -257,3 +248,18 @@ bool	Client::getRegFlag(RegFlag flag) const
 	return (false);
 }
 
+string Client::getFullPrefix() const
+{
+	return (":" + this->getName(TYPE_NICK) + "!"
+		+ this->getName(TYPE_USER) + "@" + this->getHost());
+}
+
+void	Client::setQuitReason(const string& reason)
+{
+	this->_quitReason = reason;
+}
+
+string	Client::getQuitReason() const
+{
+	return (this->_quitReason);
+}

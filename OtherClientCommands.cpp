@@ -1,15 +1,17 @@
-#include "command.hpp"
+#include "Command.hpp"
 #include "Server.hpp"
 
 #include <algorithm>
 #include <sstream>
 #include <vector>
 
-static std::vector<std::string> splitTargets(const std::string& targetList)
+using std::string;
+
+static std::vector<string> splitTargets(const string& targetList)
 {
-    std::vector<std::string> targets;
+    std::vector<string> targets;
     std::stringstream stream(targetList);
-    std::string target;
+    string target;
 
     while (std::getline(stream, target, ','))
     {
@@ -22,8 +24,8 @@ static std::vector<std::string> splitTargets(const std::string& targetList)
     return targets;
 }
 
-static void sendToChannel(Server& server, Client& sender, const std::string& target,
-    const std::string& text, bool isNotice)
+static void sendToChannel(Server& server, Client& sender, const string& target,
+    const string& text, bool isNotice)
 {
     Channel* channel = server.getChannel(target);
     if (channel == NULL)
@@ -39,14 +41,13 @@ static void sendToChannel(Server& server, Client& sender, const std::string& tar
                 channel->getName()));
         return;
     }
-    server.broadcastToChannel(*channel, ":" + sender.getName(TYPE_NICK) + "!"
-        + sender.getName(TYPE_USER) + "@" + sender.getHost()
+    server.broadcastToChannel(*channel, sender.getFullPrefix()
         + (isNotice ? " NOTICE " : " PRIVMSG ") + channel->getName()
         + " :" + text + "\r\n", &sender);
 }
 
-static void sendToUser(Server& server, Client& sender, const std::string& target,
-    const std::string& text, bool isNotice)
+static void sendToUser(Server& server, Client& sender, const string& target,
+    const string& text, bool isNotice)
 {
     Client* recipient = server.getClientByNick(target);
     if (recipient == NULL)
@@ -55,8 +56,7 @@ static void sendToUser(Server& server, Client& sender, const std::string& target
             sender.sendMessage(ERR_NOSUCHNICK(sender.getName(TYPE_NICK), target));
         return;
     }
-    server.sendToClient(*recipient, ":" + sender.getName(TYPE_NICK) + "!"
-        + sender.getName(TYPE_USER) + "@" + sender.getHost()
+    server.sendToClient(*recipient, sender.getFullPrefix()
         + (isNotice ? " NOTICE " : " PRIVMSG ") + target + " :" + text + "\r\n");
 }
 
@@ -76,7 +76,7 @@ static void handleMessage(Server& server, Client& client, const IRCMessage& msg,
         return;
     }
 
-    std::vector<std::string> targets = splitTargets(msg.params[0]);
+    std::vector<string> targets = splitTargets(msg.params[0]);
     if (targets.empty())
     {
         if (!isNotice)
@@ -84,7 +84,7 @@ static void handleMessage(Server& server, Client& client, const IRCMessage& msg,
         return;
     }
 
-    for (std::vector<std::string>::const_iterator it = targets.begin();
+    for (std::vector<string>::const_iterator it = targets.begin();
         it != targets.end(); ++it)
     {
         if ((*it)[0] == '#' || (*it)[0] == '&')
@@ -108,10 +108,6 @@ void Command::handleMotd(Server&, Client& client, const IRCMessage& msg)
     client.sendMessage(RPL_ENDOFMOTD(client.getName(TYPE_NICK)));
 }
 
-// WHO <#kanal> | WHO <nick>
-// irssi JOIN sonrasinda otomatik WHO gonderir; bunu 421 yerine dogru
-// cevaplamak icin minimal destek. Mask/away/ircop semantigi ve full Modern
-// IRC WHO davranisi kapsam disidir.
 void Command::handleWho(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.empty() || msg.params[0].empty())
@@ -120,7 +116,7 @@ void Command::handleWho(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    const std::string& target = msg.params[0];
+    const string& target = msg.params[0];
     if (target[0] == '#' || target[0] == '&')
     {
         Channel* chan = server.getChannel(target);
@@ -132,7 +128,7 @@ void Command::handleWho(Server& server, Client& client, const IRCMessage& msg)
             {
                 if (it->second == NULL)
                     continue;
-                std::string flags = chan->isOperator(it->second) ? "H@" : "H";
+                string flags = chan->isOperator(it->second) ? "H@" : "H";
                 client.sendMessage(RPL_WHOREPLY(client.getName(TYPE_NICK), chan->getName(),
                     it->second->getName(TYPE_USER), it->second->getHost(),
                     it->second->getName(TYPE_NICK), flags, it->second->getName(TYPE_REAL)));

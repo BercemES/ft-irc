@@ -7,8 +7,8 @@
 # include <set>
 # include <poll.h>
 
-# include "client.hpp"
-# include "channel.hpp"
+# include "Client.hpp"
+# include "Channel.hpp"
 
 class Server
 {
@@ -18,27 +18,16 @@ private:
     std::string                 _password;
     std::vector<struct pollfd>  _pollFds;
 
-    // fd -> Client : her istemcinin oturumu, giris/cikis tamponu ve durumu
-    // artik Client nesnesinde yasar (Asama 2: Client entegrasyonu).
     std::map<int, Client>       _clients;
 
-    // kucuk-harf normalize edilmis kanal adi -> Channel. Kanallarin sahibi
-    // Server'dir; Channel icindeki Client* gozlemcileri _clients'a bakar.
     std::map<std::string, Channel>  _channels;
 
-    // Komut adi -> handler. if-else yerine fonksiyon-pointer tablosu.
     typedef void (*CmdFunc)(Server&, Client&, const IRCMessage&);
     std::map<std::string, CmdFunc>  _commands;
 
-    std::map<std::string, std::string>  _isupport;      // RPL_ISUPPORT (005) tokenlari
-    std::string                 _creationDate;          // RPL_CREATED (003) icin
+    std::map<std::string, std::string>  _isupport;
+    std::string                 _creationDate;
 
-    // Deferred-removal kuyrugu: broadcast/sendToClient cagrilari veya
-    // dogrudan client.sendMessage() sirasinda output-overflow olan
-    // istemciler burada YALNIZ isaretlenir. Gercek removeClient() cagrisi
-    // yalniz event-loop'un guvenli noktasinda (processPendingRemovals)
-    // yapilir; boylece Channel/Client container iterasyonu sirasinda
-    // dolayli erase riski olusmaz.
     std::set<int>                _pendingRemovals;
 
 public:
@@ -47,8 +36,6 @@ public:
 
     void start();
 
-    // Kayit (registration) altyapisi — eski `server` sinifindan devralindi.
-    // Command:: handler'lari bu erisimcileri kullanir.
     const std::string&              getPassword() const;
     std::map<int, Client>&          getClients();
     const std::map<int, Client>&    getClients() const;
@@ -56,9 +43,8 @@ public:
     const std::string&              getCreationDate() const;
     void                            checkReg(Client& client) const;
     void                            sendToClient(Client& client, const std::string& message);
-    Client*                         getClientByNick(const std::string& nick);  // yoksa NULL
+    Client*                         getClientByNick(const std::string& nick);
 
-    // Kanal kaydi (registry): adlar case-insensitive eslestirilir.
     Channel*                        getChannel(const std::string& name);
     Channel&                        getOrCreateChannel(const std::string& name);
     void                            removeEmptyChannel(const std::string& name);
@@ -84,7 +70,6 @@ private:
     void updatePollEvents(int fd);
     void handlePollEvents(size_t& i, int& ready);
 
-    // Komut dagitimi: fonksiyon-pointer tablosu (Command:: statik handler'lari)
     void initCommands();
     void initIsupport();
     void handleCommand(Client& client, const IRCMessage& msg);

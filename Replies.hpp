@@ -3,7 +3,6 @@
 
 # include <string>
 
-//registration
 inline std::string   RPL_WELCOME(const std::string& nick, const std::string& user, const std::string& host)
 {
     return (":ircserv 001 " + nick + " :Welcome to the IRC Network, " + nick + "!" + user + "@" + host + "\r\n");
@@ -29,17 +28,11 @@ inline std::string   RPL_ISUPPORT(const std::string& nick, const std::string& to
     return (":ircserv 005 " + nick + " " + tokens + " :are supported by this server\r\n");
 }
 
-// Minimal user-mode query yaniti (ör. irssi'nin baglanti sirasinda gonderdigi
-// "MODE <kendi-nicki>"). Full user-mode mutasyon sistemi implement edilmedigi
-// icin daima bos mod dizgesi ("+") ile cevaplanir.
 inline std::string   RPL_UMODEIS(const std::string& nick, const std::string& modes)
 {
     return (":ircserv 221 " + nick + " " + modes + "\r\n");
 }
 
-// Minimal WHO reply: tek sunuculu kurulum oldugu icin server alani sabit
-// "ircserv", hopcount sabit "0". away/ircop ayrimi yapilmadigindan H|G
-// bayragi daima "H" (here); kanal operator ise "@" eklenir.
 inline std::string   RPL_WHOREPLY(const std::string& client, const std::string& channel,
     const std::string& user, const std::string& host, const std::string& nick,
     const std::string& flags, const std::string& realname)
@@ -53,7 +46,6 @@ inline std::string   RPL_ENDOFWHO(const std::string& client, const std::string& 
     return (":ircserv 315 " + client + " " + name + " :End of /WHO list\r\n");
 }
 
-//RPL
 inline std::string	RPL_MOTDSTART(const std::string& client)
 {
 	return (":ircserv 375 " + client + " :- ircserv Message of the day -\r\n");
@@ -68,8 +60,6 @@ inline std::string	RPL_ENDOFMOTD(const std::string& client)
 {
 	return (":ircserv 376 " + client + " :End of /MOTD command.\r\n");
 }
-
-//error
 
 inline std::string	ERR_NOSUCHNICK(const std::string& client, const std::string& nickname)
 {
@@ -119,7 +109,7 @@ inline std::string	ERR_NEEDMOREPARAMS(const std::string& client, const std::stri
 inline std::string	ERR_ALREADYREGISTERED(const std::string& client)
 {
 
-	return(":ircserv 462 " + client + " :You may not reregister\r\n");
+	return(":ircserv 462 " + client + " :You may not register\r\n");
 }
 
 inline std::string	ERR_PASSWDMISMATCH(const std::string& client)
@@ -141,10 +131,6 @@ inline std::string	ERR_NICKNAMEINUSE(const std::string& client, const std::strin
 {
 	return (":ircserv 433 " + client + " " + nick + " :Nickname is already in use\r\n");
 }
-
-//ERR_NICKCOLLISION (436) "<client> <nick> :Nickname collision KILL from <user>@<host>" -----İki sunucu bağlı olarak işlem yapmadığımız için ele almıyoruz.
-
-//channel
 
 inline std::string	RPL_CHANNELMODEIS(const std::string& nick, const std::string& channel, const std::string& modestring)
 {

@@ -1,5 +1,5 @@
-#include "channel.hpp"
-#include "client.hpp"
+#include "Channel.hpp"
+#include "Client.hpp"
 
 #include <sstream>
 
@@ -18,7 +18,7 @@ void	Channel::addMember(Client* client)
 	if (client == NULL)
 		return ;
 	_members[client->getFd()] = client;
-	// Davet tek kullanimliktir: uye kanala girer girmez bekleyen davet tuketilir.
+
 	_invited.erase(client->getFd());
 }
 
@@ -31,8 +31,7 @@ void	Channel::removeMember(Client* client)
 	fd = client->getFd();
 	_members.erase(fd);
 	_operators.erase(fd);
-	// Davet durumu burada temizlenmez: uyelik ve davet ayri yasam dongulerine
-	// sahiptir (bir davetli hicbir zaman uye olmayabilir). Bkz. removeInvite().
+
 }
 
 bool	Channel::isMember(Client* client) const
@@ -88,9 +87,6 @@ bool	Channel::isInvited(Client* client) const
 	return (_invited.find(client->getFd()) != _invited.end());
 }
 
-// Davet, uyelikten bagimsiz bir yasam dongusune sahiptir: davet edilen henuz
-// uye olmayabilir. Bu yuzden temizligi removeMember()'a gizlice baglamiyoruz;
-// disconnect sirasinda uyelikten bagimsiz olarak acikca cagrilir.
 void	Channel::removeInvite(Client* client)
 {
 	if (client == NULL)

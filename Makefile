@@ -3,7 +3,10 @@ NAME = ircserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRC = main.cpp Server.cpp client.cpp command.cpp registration.cpp otherClientCommands.cpp channel.cpp channelCommands.cpp modeCommand.cpp
+SRC = main.cpp Server.cpp Client.cpp \
+	Command.cpp Registration.cpp \
+	OtherClientCommands.cpp Channel.cpp \
+	ChannelCommands.cpp ModeCommand.cpp
 OBJ = $(SRC:.cpp=.o)
 INC =
 

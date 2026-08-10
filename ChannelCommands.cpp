@@ -1,13 +1,12 @@
-#include "command.hpp"
+#include "Command.hpp"
 #include "Server.hpp"
 
 #include <sstream>
 #include <vector>
 
 using std::string;
+using std::vector;
 
-// Kanal adi kurallari (RFC 2812): '#' veya '&' ile baslar, prefix disinda en
-// az 1, toplam en fazla 50 karakter; bosluk, virgul ve BEL (^G) iceremez.
 static bool isValidChannelName(const string& name)
 {
     if (name.size() < 2 || (name[0] != '#' && name[0] != '&'))
@@ -22,11 +21,9 @@ static bool isValidChannelName(const string& name)
     return true;
 }
 
-// Virgulle ayrilmis listeyi parcalarina ayirir. Bos parcalar KORUNUR: anahtar
-// listesinde ",k2" gibi bos yuvalar konumsal olarak anlamlidir.
-static std::vector<string> splitList(const string& list)
+static vector<string> splitList(const string& list)
 {
-    std::vector<string> out;
+    vector<string> out;
     std::stringstream ss(list);
     string item;
 
@@ -35,7 +32,6 @@ static std::vector<string> splitList(const string& list)
     return out;
 }
 
-// RPL_NAMREPLY (353) icin uye listesini uretir; operatorler '@' on ekiyle.
 static string buildNames(const Channel& channel)
 {
     string names;
@@ -55,8 +51,6 @@ static string buildNames(const Channel& channel)
     return names;
 }
 
-// Tek bir kanala katilma akisi: dogrulama, giris denetimleri (+i/+k/+l),
-// uyelik + ilk uyeye operatorluk, JOIN yayini ve topic/NAMES cevaplari.
 static void joinOne(Server& server, Client& client, const string& name, const string& key)
 {
     if (!isValidChannelName(name))
@@ -90,13 +84,11 @@ static void joinOne(Server& server, Client& client, const string& name, const st
     else
         chan = &server.getOrCreateChannel(name);
 
-    chan->addMember(&client);       // bekleyen davet burada tuketilir
+    chan->addMember(&client);
     if (created)
         chan->addOperator(&client);
 
-    // JOIN, kanalin tum uyelerine (girene de onay olarak) yayinlanir.
-    string prefix = ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost();
+    string prefix = client.getFullPrefix();
     server.broadcastToChannel(*chan, prefix + " JOIN " + chan->getName() + "\r\n");
 
     if (chan->hasTopic())
@@ -111,8 +103,6 @@ static void joinOne(Server& server, Client& client, const string& name, const st
     client.sendMessage(RPL_ENDOFNAMES(client.getName(TYPE_NICK), chan->getName()));
 }
 
-// Tek bir kanaldan ayrilma akisi: dogrulama, PART yayini (ayrilan da onay
-// olarak alir), uyelik silme ve bosalan kanalin kaldirilmasi.
 static void partOne(Server& server, Client& client, const string& name, const string& reason)
 {
     Channel* chan = server.getChannel(name);
@@ -127,9 +117,7 @@ static void partOne(Server& server, Client& client, const string& name, const st
         return;
     }
 
-    // Yayin uyelik silinmeden YAPILIR ki ayrilan da onayini alsin.
-    string prefix = ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost();
+    string prefix = client.getFullPrefix();
     server.broadcastToChannel(*chan, prefix + " PART " + chan->getName()
         + (reason.empty() ? "" : " :" + reason) + "\r\n");
 
@@ -137,8 +125,6 @@ static void partOne(Server& server, Client& client, const string& name, const st
     server.removeEmptyChannel(name);
 }
 
-// JOIN <#kanal>{,<#kanal>} [<anahtar>{,<anahtar>}]
-// Anahtarlar kanallarla konumsal eslesir; eksik kalanlar bos sayilir.
 void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.empty() || msg.params[0].empty())
@@ -147,8 +133,8 @@ void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    std::vector<string> names = splitList(msg.params[0]);
-    std::vector<string> keys;
+    vector<string> names = splitList(msg.params[0]);
+    vector<string> keys;
     if (msg.params.size() >= 2)
         keys = splitList(msg.params[1]);
 
@@ -160,7 +146,6 @@ void Command::handleJoin(Server& server, Client& client, const IRCMessage& msg)
     }
 }
 
-// PART <#kanal>{,<#kanal>} [:<sebep>]
 void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.empty() || msg.params[0].empty())
@@ -169,7 +154,7 @@ void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    std::vector<string> names = splitList(msg.params[0]);
+    vector<string> names = splitList(msg.params[0]);
     string reason = msg.params.size() >= 2 ? msg.params[1] : string();
 
     for (size_t i = 0; i < names.size(); ++i)
@@ -180,9 +165,6 @@ void Command::handlePart(Server& server, Client& client, const IRCMessage& msg)
     }
 }
 
-// TOPIC <#kanal> [:<konu>]
-// Ikinci parametre yoksa sorgu (331 veya 332+333); varsa degistirme. Bos konu
-// metni konuyu siler (hasTopic bos metinde false doner).
 void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.empty() || msg.params[0].empty())
@@ -203,7 +185,7 @@ void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    if (msg.params.size() < 2)  // sorgu
+    if (msg.params.size() < 2)
     {
         if (!chan->hasTopic())
         {
@@ -218,21 +200,16 @@ void Command::handleTopic(Server& server, Client& client, const IRCMessage& msg)
         return;
     }
 
-    // degistirme: +t iken operator olmayan uye reddedilir
     if (chan->isTopicRestricted() && !chan->isOperator(&client))
     {
         client.sendMessage(ERR_CHANOPRIVSNEEDED(client.getName(TYPE_NICK), chan->getName()));
         return;
     }
     chan->setTopic(msg.params[1], client.getName(TYPE_NICK));
-    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.broadcastToChannel(*chan, client.getFullPrefix()
         + " TOPIC " + chan->getName() + " :" + msg.params[1] + "\r\n");
 }
 
-// KICK <#kanal> <nick> [:<sebep>]
-// Denetim sirasi: 461 -> 403 -> 442 (kickleyen uye degil) -> 482 (op degil)
-// -> 441 (hedef kanalda degil; bilinmeyen nick de bu yola duser).
 void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
@@ -269,9 +246,7 @@ void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
     string reason = (msg.params.size() >= 3 && !msg.params[2].empty())
         ? msg.params[2] : client.getName(TYPE_NICK);
 
-    // Yayin uyelik silinmeden YAPILIR ki atilan da KICK'i gorsun.
-    server.broadcastToChannel(*chan, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.broadcastToChannel(*chan, client.getFullPrefix()
         + " KICK " + chan->getName() + " " + target->getName(TYPE_NICK)
         + " :" + reason + "\r\n");
 
@@ -279,11 +254,6 @@ void Command::handleKick(Server& server, Client& client, const IRCMessage& msg)
     server.removeEmptyChannel(msg.params[0]);
 }
 
-// INVITE <nick> <#kanal>
-// Denetim sirasi: 461 -> 403 -> 442 (davet eden uye degil) -> 482 (davet eden
-// operator degil; +i sadece JOIN'in davet gerektirip gerektirmedigini belirler)
-// -> 401 (hedef nick yok) -> 443 (hedef zaten uye). Davetler tek kullanimlik:
-// Channel::addMember JOIN sirasinda daveti tuketir.
 void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg)
 {
     if (msg.params.size() < 2 || msg.params[0].empty() || msg.params[1].empty())
@@ -325,7 +295,6 @@ void Command::handleInvite(Server& server, Client& client, const IRCMessage& msg
     chan->invite(target);
     client.sendMessage(RPL_INVITING(client.getName(TYPE_NICK),
         target->getName(TYPE_NICK), chan->getName()));
-    server.sendToClient(*target, ":" + client.getName(TYPE_NICK) + "!"
-        + client.getName(TYPE_USER) + "@" + client.getHost()
+    server.sendToClient(*target, client.getFullPrefix()
         + " INVITE " + target->getName(TYPE_NICK) + " " + chan->getName() + "\r\n");
 }
